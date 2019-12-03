@@ -1,7 +1,7 @@
-import merge from 'ngraph.merge';
-import { random } from 'ngraph.random';
-import centrality from 'ngraph.centrality';
-import { Supervisor } from './supervisor';
+import merge from "ngraph.merge";
+import { random } from "ngraph.random";
+import centrality from "ngraph.centrality";
+import { Supervisor } from "./supervisor";
 
 /**
  * Does not really perform any layouting algorithm but is compliant
@@ -13,50 +13,44 @@ import { Supervisor } from './supervisor';
  * @param {Object} userSettings
  */
 export function forceAtlas2(graph, config, userSettings) {
-    userSettings = merge(userSettings, {
-        maxX: 1024,
-        maxY: 1024,
-        seed: 'Deterministic randomness made me do this'
-    });
+  userSettings = merge(userSettings, {
+    maxX: 1024,
+    maxY: 1024,
+    seed: "Deterministic randomness made me do this"
+  });
 
+  const rand = random(userSettings.seed);
+  const layoutLinks = {};
 
-    var rand = random(userSettings.seed),
-        layoutLinks = {},
+  function generateRandomPosition() {
+    return {
+      x: rand.next(userSettings.maxX / 2) - rand.next(userSettings.maxX / 2),
+      y: rand.next(userSettings.maxY / 2) - rand.next(userSettings.maxY / 2),
+      isPinned: false,
+      changed: false
+    };
+  }
 
-        generateRandomPosition = function () {
-            return {
-                x: rand.next(userSettings.maxX/2) - rand.next(userSettings.maxX/2),
-                y: rand.next(userSettings.maxY/2) - rand.next(userSettings.maxY/2),
-                isPinned: false,
-                changed: false
-            };
-        },
+  const layoutNodes =
+    typeof Object.create === "function" ? Object.create(null) : {};
+  const layoutNodesArray = [];
+  const layoutLinksArray = [];
 
+  function initNode(node) {
+    var nodeBody = generateRandomPosition();
+    nodeBody.id = node.id;
+    layoutNodesArray.push(nodeBody);
+    layoutNodes[node.id] = nodeBody;
+  }
 
-        layoutNodes = typeof Object.create === 'function' ? Object.create(null) : {},
-        layoutNodesArray = [],
-        layoutLinksArray = [],
+  function initLink(link) {
+    layoutLinks[link.id] = link;
+    layoutLinksArray.push(link);
+  }
 
-
-        initNode = function (node) {
-
-            var nodeBody = generateRandomPosition();
-            nodeBody.id = node.id;
-            layoutNodesArray.push(nodeBody);
-            layoutNodes[node.id] = nodeBody;
-
-        },
-
-
-        initLink = function (link) {
-            layoutLinks[link.id] = link;
-            layoutLinksArray.push(link);
-        },
-
-
-        onGraphChanged = function (changes) {
-            console.warn('Not implemented');
-            /*for (var i = 0; i < changes.length; ++i) {
+  function onGraphChanged(changes) {
+    console.warn("Not implemented");
+    /*for (var i = 0; i < changes.length; ++i) {
              var change = changes[i];
              if (change.node) {
              if (change.changeType === 'add') {
@@ -73,117 +67,112 @@ export function forceAtlas2(graph, config, userSettings) {
              }
              }
              }*/
-        };
+  }
 
+  function getNodePosition(nodeId) {
+    return layoutNodes[nodeId];
+  }
 
-    graph.forEachNode(initNode);
-    graph.forEachLink(initLink);
+  graph.forEachNode(initNode);
+  graph.forEachLink(initLink);
 
-    var degreeCentrality = centrality.degree(graph);
+  const degreeCentrality = centrality.degree(graph);
+  graph.on("changed", onGraphChanged);
 
-    graph.on('changed', onGraphChanged);
+  const supervisor = new Supervisor(
+    {
+      nodes: layoutNodesArray,
+      edges: layoutLinksArray,
+      degree: degreeCentrality
+    },
+    config
+  );
 
-    var supervisor = new Supervisor({
-        nodes: layoutNodesArray,
-        edges: layoutLinksArray,
-        degree: degreeCentrality
-    }, config);
+  return {
+    config(c) {
+      supervisor.configure(c);
+    },
 
+    /**
+     * Attempts to layout graph within given number of iterations.
+     *
+     * @param {integer} [iterationsCount] number of algorithm's iterations.
+     *  The constant layout ignores this parameter.
+     */
+    run(iterationsCount) {
+      throw new Error("not implemented");
+    },
 
-    return {
+    /**
+     * One step of layout algorithm
+     */
+    step() {
+      if (supervisor.isPending()) return;
+      supervisor.step();
 
-        config: function (config) {
-            supervisor.configure(config)
-        },
-        /**
-         * Attempts to layout graph within given number of iterations.
-         *
-         * @param {integer} [iterationsCount] number of algorithm's iterations.
-         *  The constant layout ignores this parameter.
-         */
-        run: function (iterationsCount) {
-            throw new Error('not implemented');
-        },
+      return false;
+    },
 
-        /**
-         * One step of layout algorithm
-         */
-        step: function () {
+    /**
+     * Returns rectangle structure {x1, y1, x2, y2}, which represents
+     * current space occupied by graph.
+     */
+    getGraphRect() {
+      return supervisor.getGraphRect();
+    },
 
-            if (supervisor.isPending()) return;
-            supervisor.step();
+    /**
+     * Request to release all resources
+     */
+    dispose() {
+      graph.off("change", onGraphChanged);
+      supervisor.kill();
+    },
 
-            return false;
-        },
+    isNodePinned(node) {
+      return layoutNodes[node.id].isPinned;
+    },
 
-        /**
-         * Returns rectangle structure {x1, y1, x2, y2}, which represents
-         * current space occupied by graph.
-         */
-        getGraphRect: function () {
-            return supervisor.getGraphRect();
-        },
+    /**
+     * Requests layout algorithm to pin/unpin node to its current position
+     * Pinned nodes should not be affected by layout algorithm and always
+     * remain at their position
+     */
+    pinNode(node, isPinned) {
+      var body = layoutNodes[node.id];
+      if (body.isPinned !== isPinned) {
+        body.isPinned = isPinned;
+        body.changed = true;
+      }
+    },
 
-        /**
-         * Request to release all resources
-         */
-        dispose: function () {
-            graph.off('change', onGraphChanged);
-            supervisor.kill();
-        },
+    /**
+     * Gets position of a node by its id. If node was not seen by this
+     * layout algorithm undefined value is returned;
+     */
+    getNodePosition: getNodePosition,
 
+    /**
+     * Returns {from, to} position of a link.
+     */
+    getLinkPosition(linkId) {
+      var link = layoutLinks[linkId];
+      return {
+        from: getNodePosition(link.fromId),
+        to: getNodePosition(link.toId)
+      };
+    },
 
-        isNodePinned: function (node) {
-            return layoutNodes[node.id].isPinned;
-        },
-
-        /**
-         * Requests layout algorithm to pin/unpin node to its current position
-         * Pinned nodes should not be affected by layout algorithm and always
-         * remain at their position
-         */
-        pinNode: function (node, isPinned) {
-
-            var body = layoutNodes[node.id];
-            if (body.isPinned !== isPinned) {
-                body.isPinned = isPinned;
-                body.changed = true;
-            }
-
-        },
-
-        /**
-         * Gets position of a node by its id. If node was not seen by this
-         * layout algorithm undefined value is returned;
-         */
-        getNodePosition: getNodePosition,
-
-        /**
-         * Returns {from, to} position of a link.
-         */
-        getLinkPosition: function (linkId) {
-            var link = layoutLinks[linkId];
-            return {
-                from: getNodePosition(link.fromId),
-                to: getNodePosition(link.toId)
-            };
-        },
-
-        /**
-         * Sets position of a node to a given coordinates
-         */
-        setNodePosition: function (nodeId, x, y) {
-            var body = layoutNodes[nodeId];
-            if (body) {
-                body.x = x;
-                body.y = y;
-            }
-            body.changed = true;
-        }
-
-    };
-
-    function getNodePosition(nodeId) {
-        return layoutNodes[nodeId];
+    /**
+     * Sets position of a node to a given coordinates
+     */
+    setNodePosition(nodeId, x, y) {
+      var body = layoutNodes[nodeId];
+      if (body) {
+        body.x = x;
+        body.y = y;
+      }
+      body.changed = true;
     }
+  };
 }
