@@ -1,7 +1,7 @@
-var Viva = require('./node_modules/vivagraphjs/src/viva');
+var Viva = require('vivagraphjs/src/viva');
 var graphGenerator = Viva.Graph.generator();
 var graph = graphGenerator.grid(20, 20);
-var ForceAtlas2 = require('../Layout');
+var ForceAtlas2 = require('../src/Layout');
 var agm = require('ngraph.agmgen');
 var _ = require('underscore');
 var colors = require('./colors');

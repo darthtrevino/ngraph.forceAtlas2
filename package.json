@@ -9,11 +9,25 @@
   "dependencies": {
     "ngraph.centrality": "^0.1.3",
     "ngraph.merge": "^0.0.1",
-    "ngraph.random": "^0.0.1"
+    "ngraph.random": "^0.0.1",
+    "webpack-dev-server": "^3.9.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "browserify": "^9.0.8",
+    "exorcist": "^0.1.6",
+    "html-webpack-plugin": "^3.2.0",
+    "ngraph.agmgen": "^0.1.3",
+    "ngraph.merge": "0.0.1",
+    "ngraph.random": "0.0.1",
+    "underscore": "^1.8.3",
+    "vivagraphjs": "^0.7.8",
+    "watchify": "^3.1.0",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack-dev-server"
   },
   "keywords": [
     "forceAtlas2",
