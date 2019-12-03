@@ -34,7 +34,7 @@ var webWorkers = 'Worker' in _root;
  * Supervisor Object
  * ------------------
  */
-function Supervisor(graph, config) {
+export function Supervisor(graph, config) {
     // Create supervisor if undefined
     this._init(graph, config);
 
@@ -374,8 +374,6 @@ Supervisor.prototype.forceUpdate = function () {
         this._needUpdate = true;
 };
 
-
-module.exports = Supervisor;
 
 
 

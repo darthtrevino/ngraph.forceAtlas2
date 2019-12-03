@@ -1,9 +1,7 @@
-module.exports = constant;
-
-var merge = require('ngraph.merge');
-var random = require('ngraph.random').random;
-var centrality = require('ngraph.centrality');
-var AtlasSupervisor = require('./supervisor');
+import merge from 'ngraph.merge';
+import { random } from 'ngraph.random';
+import centrality from 'ngraph.centrality';
+import { Supervisor } from './supervisor';
 
 /**
  * Does not really perform any layouting algorithm but is compliant
@@ -14,7 +12,7 @@ var AtlasSupervisor = require('./supervisor');
  * @param config
  * @param {Object} userSettings
  */
-function constant(graph, config, userSettings) {
+export function forceAtlas2(graph, config, userSettings) {
     userSettings = merge(userSettings, {
         maxX: 1024,
         maxY: 1024,
@@ -85,7 +83,7 @@ function constant(graph, config, userSettings) {
 
     graph.on('changed', onGraphChanged);
 
-    var supervisor = new AtlasSupervisor({
+    var supervisor = new Supervisor({
         nodes: layoutNodesArray,
         edges: layoutLinksArray,
         degree: degreeCentrality

@@ -1,4 +1,4 @@
-module.exports = [
+export const colors = [
   "#B0BF1A",
   "#7CB9E8",
   "#C9FFE5",
