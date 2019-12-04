@@ -44,6 +44,8 @@ export class FA2Algorithm {
 	private _edges: Float32Array
 	private _regions: number[] = []
 
+	private _scaledGravity: number
+
 	public constructor(
 		nodes: Float32Array,
 		edges: Float32Array,
@@ -56,6 +58,7 @@ export class FA2Algorithm {
 
 	public configure(config: Partial<FA2Configuration>) {
 		this._config = { ...DEFAULT_CONFIGURATION, ...config }
+		this._scaledGravity = this._config.gravity / this._config.scalingRatio
 	}
 
 	private get maxForce() {
@@ -103,38 +106,13 @@ export class FA2Algorithm {
 		this.resetDeltas()
 		this.prepareBarnesHutOptimization()
 		this.computeRepulsion()
-
-		// 3) Gravity
-		//------------
-		g = this.configuration.gravity / this.configuration.scalingRatio
-		coefficient = this.configuration.scalingRatio
-		for (n = 0; n < this.nodesLength; n += ppn) {
-			factor = 0
-
-			// Common to both methods
-			xDist = this._nodes[n + NP.x]
-			yDist = this._nodes[n + NP.y]
-			distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
-
-			if (this.configuration.strongGravityMode) {
-				//-- Strong gravity
-				if (distance > 0) factor = coefficient * this._nodes[n + NP.mass] * g
-			} else {
-				//-- Linear Anti-collision Repulsion n
-				if (distance > 0)
-					factor = (coefficient * this._nodes[n + NP.mass] * g) / distance
-			}
-
-			// Updating node's dx and dy
-			this._nodes[n + NP.dx] -= xDist * factor
-			this._nodes[n + NP.dy] -= yDist * factor
-		}
+		this.computeGravity()
 
 		// 4) Attraction
 		//---------------
 		coefficient =
 			1 *
-			(this.configuration.outboundAttractionDistribution
+			(this._config.outboundAttractionDistribution
 				? outboundAttCompensation
 				: 1)
 
@@ -146,14 +124,14 @@ export class FA2Algorithm {
 			w = this._edges[e + EP.weight]
 
 			// Edge weight influence
-			ewc = Math.pow(w, this.configuration.edgeWeightInfluence)
+			ewc = Math.pow(w, this._config.edgeWeightInfluence)
 
 			// Common measures
 			xDist = this._nodes[n1 + NP.x] - this._nodes[n2 + NP.x]
 			yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
 
 			// Applying attraction to nodes
-			if (this.configuration.adjustSizes) {
+			if (this._config.adjustSizes) {
 				distance = Math.sqrt(
 					Math.pow(xDist, 2) +
 						Math.pow(yDist, 2) -
@@ -161,8 +139,8 @@ export class FA2Algorithm {
 						this._nodes[n2 + NP.size],
 				)
 
-				if (this.configuration.linLogMode) {
-					if (this.configuration.outboundAttractionDistribution) {
+				if (this._config.linLogMode) {
+					if (this._config.outboundAttractionDistribution) {
 						//-- LinLog Degree Distributed Anti-collision Attraction
 						if (distance > 0) {
 							factor =
@@ -177,7 +155,7 @@ export class FA2Algorithm {
 						}
 					}
 				} else {
-					if (this.configuration.outboundAttractionDistribution) {
+					if (this._config.outboundAttractionDistribution) {
 						//-- Linear Degree Distributed Anti-collision Attraction
 						if (distance > 0) {
 							factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
@@ -192,8 +170,8 @@ export class FA2Algorithm {
 			} else {
 				distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
 
-				if (this.configuration.linLogMode) {
-					if (this.configuration.outboundAttractionDistribution) {
+				if (this._config.linLogMode) {
+					if (this._config.outboundAttractionDistribution) {
 						//-- LinLog Degree Distributed Attraction
 						if (distance > 0) {
 							factor =
@@ -207,7 +185,7 @@ export class FA2Algorithm {
 							factor = (-coefficient * ewc * Math.log(1 + distance)) / distance
 					}
 				} else {
-					if (this.configuration.outboundAttractionDistribution) {
+					if (this._config.outboundAttractionDistribution) {
 						//-- Linear Attraction Mass Distributed
 						// NOTE: Distance is set to 1 to override next condition
 						distance = 1
@@ -238,7 +216,7 @@ export class FA2Algorithm {
 		var force, swinging, traction, nodespeed
 
 		// MATH: sqrt and square distances
-		if (this.configuration.adjustSizes) {
+		if (this._config.adjustSizes) {
 			for (n = 0; n < this.nodesLength; n += ppn) {
 				if (!this._nodes[n + NP.fixed]) {
 					force = Math.sqrt(
@@ -275,10 +253,10 @@ export class FA2Algorithm {
 					// Updating node's positon
 					this._nodes[n + NP.x] =
 						this._nodes[n + NP.x] +
-						this._nodes[n + NP.dx] * (nodespeed / this.configuration.slowDown)
+						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
 					this._nodes[n + NP.y] =
 						this._nodes[n + NP.y] +
-						this._nodes[n + NP.dy] * (nodespeed / this.configuration.slowDown)
+						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
 				}
 			}
 		} else {
@@ -319,10 +297,10 @@ export class FA2Algorithm {
 					// Updating node's positon
 					this._nodes[n + NP.x] =
 						this._nodes[n + NP.x] +
-						this._nodes[n + NP.dx] * (nodespeed / this.configuration.slowDown)
+						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
 					this._nodes[n + NP.y] =
 						this._nodes[n + NP.y] +
-						this._nodes[n + NP.dy] * (nodespeed / this.configuration.slowDown)
+						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
 				}
 			}
 		}
@@ -344,7 +322,7 @@ export class FA2Algorithm {
 	private get outboundAttCompensation() {
 		let outboundAttCompensation = 0
 		// If outbound attraction distribution, compensate
-		if (this.configuration.outboundAttractionDistribution) {
+		if (this._config.outboundAttractionDistribution) {
 			outboundAttCompensation = 0
 			for (let n = 0; n < this.nodesLength; n += ppn) {
 				outboundAttCompensation += this._nodes[n + NP.mass]
@@ -358,7 +336,7 @@ export class FA2Algorithm {
 	private prepareBarnesHutOptimization() {
 		// 1.bis) Barnes-Hut computation
 		//------------------------------
-		if (this.configuration.barnesHutOptimize) {
+		if (this._config.barnesHutOptimize) {
 			this._regions = [] //new Float32Array(this.nodesLength / ppn * 4 * ppr)
 			var q, q0, q1, q2, q3
 
@@ -578,8 +556,8 @@ export class FA2Algorithm {
 		//--------------
 		// NOTES: adjustSize = antiCollision & scalingRatio = coefficient
 
-		if (this.configuration.barnesHutOptimize) {
-			let coefficient = this.configuration.scalingRatio
+		if (this._config.barnesHutOptimize) {
+			let coefficient = this._config.scalingRatio
 
 			// Applying repulsion through regions
 			for (let n = 0; n < this.nodesLength; n += ppn) {
@@ -601,7 +579,7 @@ export class FA2Algorithm {
 
 						if (
 							(2 * this._regions[r + RP.size]) / distance <
-							this.configuration.barnesHutTheta
+							this._config.barnesHutTheta
 						) {
 							// We treat the region as a single body, and we repulse
 							let xDist =
@@ -609,7 +587,7 @@ export class FA2Algorithm {
 							let yDist =
 								this._nodes[n + NP.y] - this._regions[r + RP.massCenterY]
 
-							if (this.configuration.adjustSize) {
+							if (this._config.adjustSize) {
 								//-- Linear Anti-collision Repulsion
 								if (distance > 0) {
 									factor =
@@ -676,7 +654,7 @@ export class FA2Algorithm {
 
 							distance = Math.sqrt(xDist * xDist + yDist * yDist)
 
-							if (this.configuration.adjustSize) {
+							if (this._config.adjustSize) {
 								//-- Linear Anti-collision Repulsion
 								if (distance > 0) {
 									factor =
@@ -722,7 +700,7 @@ export class FA2Algorithm {
 				}
 			}
 		} else {
-			let coefficient = this.configuration.scalingRatio
+			let coefficient = this._config.scalingRatio
 
 			// Square iteration
 			for (let n1 = 0; n1 < this.nodesLength; n1 += ppn) {
@@ -732,7 +710,7 @@ export class FA2Algorithm {
 					let yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
 					let factor
 
-					if (this.configuration.adjustSize) {
+					if (this._config.adjustSize) {
 						//-- Anticollision Linear Repulsion
 						let distance =
 							Math.sqrt(xDist * xDist + yDist * yDist) -
@@ -790,5 +768,38 @@ export class FA2Algorithm {
 				}
 			}
 		}
+	}
+
+	private computeGravity() {
+		for (let n = 0; n < this.nodesLength; n += ppn) {
+			// Common to both methods
+			const xDist = this._nodes[n + NP.x]
+			const yDist = this._nodes[n + NP.y]
+			const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
+			const factor = this.getGravityFactor(n, distance)
+
+			// Updating node's dx and dy
+			this._nodes[n + NP.dx] -= xDist * factor
+			this._nodes[n + NP.dy] -= yDist * factor
+		}
+	}
+
+	private getGravityFactor(n: number, distance: number) {
+		const coefficient = this._config.scalingRatio
+		const g = this._scaledGravity
+
+		let factor = 0
+		if (this._config.strongGravityMode) {
+			//-- Strong gravity
+			if (distance > 0) {
+				factor = coefficient * this._nodes[n + NP.mass] * g
+			}
+		} else {
+			//-- Linear Anti-collision Repulsion n
+			if (distance > 0) {
+				factor = (coefficient * this._nodes[n + NP.mass] * g) / distance
+			}
+		}
+		return factor
 	}
 }
