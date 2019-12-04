@@ -36,22 +36,6 @@ export enum RP {
 	massCenterY = 8,
 }
 
-function np(i: number, p: NP) {
-	// DEBUG: safeguards
-	if (i % ppn !== 0) {
-		throw new Error(`np: non correct (${i})`)
-	}
-	return i + p
-}
-
-function ep(i: number, p: EP) {
-	// DEBUG: safeguards
-	if (i % ppe !== 0) {
-		throw new Error(`ep: non correct (${i})`)
-	}
-	return i + p
-}
-
 export class FA2Algorithm {
 	private _config: FA2Configuration
 	private _iterations = 0
@@ -118,222 +102,7 @@ export class FA2Algorithm {
 
 		this.resetDeltas()
 		this.prepareBarnesHutOptimization()
-
-		// 2) Repulsion
-		//--------------
-		// NOTES: adjustSize = antiCollision & scalingRatio = coefficient
-
-		if (this.configuration.barnesHutOptimize) {
-			coefficient = this.configuration.scalingRatio
-
-			// Applying repulsion through regions
-			for (n = 0; n < this.nodesLength; n += ppn) {
-				// Computing leaf quad nodes iteration
-
-				r = 0 // Starting with root region
-				while (true) {
-					if (this._regions[r + RP.firstChild] >= 0) {
-						// The region has sub-regions
-
-						// We run the Barnes Hut test to see if we are at the right distance
-						distance = Math.sqrt(
-							Math.pow(
-								this._nodes[np(n, NP.x)] - this._regions[r + RP.massCenterX],
-								2,
-							) +
-								Math.pow(
-									this._nodes[np(n, NP.y)] - this._regions[r + RP.massCenterY],
-									2,
-								),
-						)
-
-						if (
-							(2 * this._regions[r + RP.size]) / distance <
-							this.configuration.barnesHutTheta
-						) {
-							// We treat the region as a single body, and we repulse
-
-							xDist =
-								this._nodes[np(n, NP.x)] - this._regions[r + RP.massCenterX]
-							yDist =
-								this._nodes[np(n, NP.y)] - this._regions[r + RP.massCenterY]
-
-							if (this.configuration.adjustSize) {
-								//-- Linear Anti-collision Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._regions[r + RP.mass]) /
-										distance /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								} else if (distance < 0) {
-									factor =
-										(-coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._regions[r + RP.mass]) /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								}
-							} else {
-								//-- Linear Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._regions[r + RP.mass]) /
-										distance /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								}
-							}
-
-							// When this is done, we iterate. We have to look at the next sibling.
-							if (this._regions[r + RP.nextSibling] < 0) break // No next sibling: we have finished the tree
-							r = this._regions[r + RP.nextSibling]
-							continue
-						} else {
-							// The region is too close and we have to look at sub-regions
-							r = this._regions[r + RP.firstChild]
-							continue
-						}
-					} else {
-						// The region has no sub-region
-						// If there is a node r[0] and it is not n, then repulse
-
-						if (
-							this._regions[r + RP.node] >= 0 &&
-							this._regions[r + RP.node] !== n
-						) {
-							xDist =
-								this._nodes[np(n, NP.x)] -
-								this._nodes[np(this._regions[r + RP.node], NP.x)]
-							yDist =
-								this._nodes[np(n, NP.y)] -
-								this._nodes[np(this._regions[r + RP.node], NP.y)]
-
-							distance = Math.sqrt(xDist * xDist + yDist * yDist)
-
-							if (this.configuration.adjustSize) {
-								//-- Linear Anti-collision Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._nodes[np(this._regions[r + RP.node], NP.mass)]) /
-										distance /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								} else if (distance < 0) {
-									factor =
-										(-coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._nodes[np(this._regions[r + RP.node], NP.mass)]) /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								}
-							} else {
-								//-- Linear Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes[np(n, NP.mass)] *
-											this._nodes[np(this._regions[r + RP.node], NP.mass)]) /
-										distance /
-										distance
-
-									this._nodes[np(n, NP.dx)] += xDist * factor
-									this._nodes[np(n, NP.dy)] += yDist * factor
-								}
-							}
-						}
-
-						// When this is done, we iterate. We have to look at the next sibling.
-						if (this._regions[r + RP.nextSibling] < 0) break // No next sibling: we have finished the tree
-						r = this._regions[r + RP.nextSibling]
-						continue
-					}
-				}
-			}
-		} else {
-			coefficient = this.configuration.scalingRatio
-
-			// Square iteration
-			for (n1 = 0; n1 < this.nodesLength; n1 += ppn) {
-				for (n2 = 0; n2 < n1; n2 += ppn) {
-					// Common to both methods
-					xDist = this._nodes[np(n1, NP.x)] - this._nodes[np(n2, NP.x)]
-					yDist = this._nodes[np(n1, NP.y)] - this._nodes[np(n2, NP.y)]
-
-					if (this.configuration.adjustSize) {
-						//-- Anticollision Linear Repulsion
-						distance =
-							Math.sqrt(xDist * xDist + yDist * yDist) -
-							this._nodes[np(n1, NP.size)] -
-							this._nodes[np(n2, NP.size)]
-
-						if (distance > 0) {
-							factor =
-								(coefficient *
-									this._nodes[np(n1, NP.mass)] *
-									this._nodes[np(n2, NP.mass)]) /
-								distance /
-								distance
-
-							// Updating nodes' dx and dy
-							this._nodes[np(n1, NP.dx)] += xDist * factor
-							this._nodes[np(n1, NP.dy)] += yDist * factor
-
-							this._nodes[np(n2, NP.dx)] += xDist * factor
-							this._nodes[np(n2, NP.dy)] += yDist * factor
-						} else if (distance < 0) {
-							factor =
-								100 *
-								coefficient *
-								this._nodes[np(n1, NP.mass)] *
-								this._nodes[np(n2, NP.mass)]
-
-							// Updating nodes' dx and dy
-							this._nodes[np(n1, NP.dx)] += xDist * factor
-							this._nodes[np(n1, NP.dy)] += yDist * factor
-
-							this._nodes[np(n2, NP.dx)] -= xDist * factor
-							this._nodes[np(n2, NP.dy)] -= yDist * factor
-						}
-					} else {
-						//-- Linear Repulsion
-						distance = Math.sqrt(xDist * xDist + yDist * yDist)
-
-						if (distance > 0) {
-							factor =
-								(coefficient *
-									this._nodes[np(n1, NP.mass)] *
-									this._nodes[np(n2, NP.mass)]) /
-								distance /
-								distance
-
-							// Updating nodes' dx and dy
-							this._nodes[np(n1, NP.dx)] += xDist * factor
-							this._nodes[np(n1, NP.dy)] += yDist * factor
-
-							this._nodes[np(n2, NP.dx)] -= xDist * factor
-							this._nodes[np(n2, NP.dy)] -= yDist * factor
-						}
-					}
-				}
-			}
-		}
+		this.computeRepulsion()
 
 		// 3) Gravity
 		//------------
@@ -343,22 +112,22 @@ export class FA2Algorithm {
 			factor = 0
 
 			// Common to both methods
-			xDist = this._nodes[np(n, NP.x)]
-			yDist = this._nodes[np(n, NP.y)]
+			xDist = this._nodes[n + NP.x]
+			yDist = this._nodes[n + NP.y]
 			distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
 
 			if (this.configuration.strongGravityMode) {
 				//-- Strong gravity
-				if (distance > 0) factor = coefficient * this._nodes[np(n, NP.mass)] * g
+				if (distance > 0) factor = coefficient * this._nodes[n + NP.mass] * g
 			} else {
 				//-- Linear Anti-collision Repulsion n
 				if (distance > 0)
-					factor = (coefficient * this._nodes[np(n, NP.mass)] * g) / distance
+					factor = (coefficient * this._nodes[n + NP.mass] * g) / distance
 			}
 
 			// Updating node's dx and dy
-			this._nodes[np(n, NP.dx)] -= xDist * factor
-			this._nodes[np(n, NP.dy)] -= yDist * factor
+			this._nodes[n + NP.dx] -= xDist * factor
+			this._nodes[n + NP.dy] -= yDist * factor
 		}
 
 		// 4) Attraction
@@ -372,24 +141,24 @@ export class FA2Algorithm {
 		// TODO: simplify distance
 		// TODO: coefficient is always used as -c --> optimize?
 		for (e = 0; e < this.edgesLength; e += ppe) {
-			n1 = this._edges[ep(e, EP.source)]
-			n2 = this._edges[ep(e, EP.target)]
-			w = this._edges[ep(e, EP.weight)]
+			n1 = this._edges[e + EP.source]
+			n2 = this._edges[e + EP.target]
+			w = this._edges[e + EP.weight]
 
 			// Edge weight influence
 			ewc = Math.pow(w, this.configuration.edgeWeightInfluence)
 
 			// Common measures
-			xDist = this._nodes[np(n1, NP.x)] - this._nodes[np(n2, NP.x)]
-			yDist = this._nodes[np(n1, NP.y)] - this._nodes[np(n2, NP.y)]
+			xDist = this._nodes[n1 + NP.x] - this._nodes[n2 + NP.x]
+			yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
 
 			// Applying attraction to nodes
 			if (this.configuration.adjustSizes) {
 				distance = Math.sqrt(
 					Math.pow(xDist, 2) +
 						Math.pow(yDist, 2) -
-						this._nodes[np(n1, NP.size)] -
-						this._nodes[np(n2, NP.size)],
+						this._nodes[n1 + NP.size] -
+						this._nodes[n2 + NP.size],
 				)
 
 				if (this.configuration.linLogMode) {
@@ -399,7 +168,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								this._nodes[np(n1, NP.mass)]
+								this._nodes[n1 + NP.mass]
 						}
 					} else {
 						//-- LinLog Anti-collision Attraction
@@ -411,7 +180,7 @@ export class FA2Algorithm {
 					if (this.configuration.outboundAttractionDistribution) {
 						//-- Linear Degree Distributed Anti-collision Attraction
 						if (distance > 0) {
-							factor = (-coefficient * ewc) / this._nodes[np(n1, NP.mass)]
+							factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
 						}
 					} else {
 						//-- Linear Anti-collision Attraction
@@ -430,7 +199,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								this._nodes[np(n1, NP.mass)]
+								this._nodes[n1 + NP.mass]
 						}
 					} else {
 						//-- LinLog Attraction
@@ -442,7 +211,7 @@ export class FA2Algorithm {
 						//-- Linear Attraction Mass Distributed
 						// NOTE: Distance is set to 1 to override next condition
 						distance = 1
-						factor = (-coefficient * ewc) / this._nodes[np(n1, NP.mass)]
+						factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
 					} else {
 						//-- Linear Attraction
 						// NOTE: Distance is set to 1 to override next condition
@@ -456,11 +225,11 @@ export class FA2Algorithm {
 			// TODO: if condition or factor = 1?
 			if (distance > 0) {
 				// Updating nodes' dx and dy
-				this._nodes[np(n1, NP.dx)] += xDist * factor
-				this._nodes[np(n1, NP.dy)] += yDist * factor
+				this._nodes[n1 + NP.dx] += xDist * factor
+				this._nodes[n1 + NP.dy] += yDist * factor
 
-				this._nodes[np(n2, NP.dx)] -= xDist * factor
-				this._nodes[np(n2, NP.dy)] -= yDist * factor
+				this._nodes[n2 + NP.dx] -= xDist * factor
+				this._nodes[n2 + NP.dy] -= yDist * factor
 			}
 		}
 
@@ -471,93 +240,89 @@ export class FA2Algorithm {
 		// MATH: sqrt and square distances
 		if (this.configuration.adjustSizes) {
 			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[np(n, NP.fixed)]) {
+				if (!this._nodes[n + NP.fixed]) {
 					force = Math.sqrt(
-						Math.pow(this._nodes[np(n, NP.dx)], 2) +
-							Math.pow(this._nodes[np(n, NP.dy)], 2),
+						Math.pow(this._nodes[n + NP.dx], 2) +
+							Math.pow(this._nodes[n + NP.dy], 2),
 					)
 
 					if (force > this.maxForce) {
-						this._nodes[np(n, NP.dx)] =
-							(this._nodes[np(n, NP.dx)] * this.maxForce) / force
-						this._nodes[np(n, NP.dy)] =
-							(this._nodes[np(n, NP.dy)] * this.maxForce) / force
+						this._nodes[n + NP.dx] =
+							(this._nodes[n + NP.dx] * this.maxForce) / force
+						this._nodes[n + NP.dy] =
+							(this._nodes[n + NP.dy] * this.maxForce) / force
 					}
 
 					swinging =
-						this._nodes[np(n, NP.mass)] *
+						this._nodes[n + NP.mass] *
 						Math.sqrt(
-							(this._nodes[np(n, NP.old_dx)] - this._nodes[np(n, NP.dx)]) *
-								(this._nodes[np(n, NP.old_dx)] - this._nodes[np(n, NP.dx)]) +
-								(this._nodes[np(n, NP.old_dy)] - this._nodes[np(n, NP.dy)]) *
-									(this._nodes[np(n, NP.old_dy)] - this._nodes[np(n, NP.dy)]),
+							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
 						)
 
 					traction =
 						Math.sqrt(
-							(this._nodes[np(n, NP.old_dx)] + this._nodes[np(n, NP.dx)]) *
-								(this._nodes[np(n, NP.old_dx)] + this._nodes[np(n, NP.dx)]) +
-								(this._nodes[np(n, NP.old_dy)] + this._nodes[np(n, NP.dy)]) *
-									(this._nodes[np(n, NP.old_dy)] + this._nodes[np(n, NP.dy)]),
+							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
 						) / 2
 
 					nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
 
 					// Updating node's positon
-					this._nodes[np(n, NP.x)] =
-						this._nodes[np(n, NP.x)] +
-						this._nodes[np(n, NP.dx)] *
-							(nodespeed / this.configuration.slowDown)
-					this._nodes[np(n, NP.y)] =
-						this._nodes[np(n, NP.y)] +
-						this._nodes[np(n, NP.dy)] *
-							(nodespeed / this.configuration.slowDown)
+					this._nodes[n + NP.x] =
+						this._nodes[n + NP.x] +
+						this._nodes[n + NP.dx] * (nodespeed / this.configuration.slowDown)
+					this._nodes[n + NP.y] =
+						this._nodes[n + NP.y] +
+						this._nodes[n + NP.dy] * (nodespeed / this.configuration.slowDown)
 				}
 			}
 		} else {
 			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[np(n, NP.fixed)]) {
+				if (!this._nodes[n + NP.fixed]) {
 					swinging =
-						this._nodes[np(n, NP.mass)] *
+						this._nodes[n + NP.mass] *
 						Math.sqrt(
-							(this._nodes[np(n, NP.old_dx)] - this._nodes[np(n, NP.dx)]) *
-								(this._nodes[np(n, NP.old_dx)] - this._nodes[np(n, NP.dx)]) +
-								(this._nodes[np(n, NP.old_dy)] - this._nodes[np(n, NP.dy)]) *
-									(this._nodes[np(n, NP.old_dy)] - this._nodes[np(n, NP.dy)]),
+							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
 						)
 
 					traction =
 						Math.sqrt(
-							(this._nodes[np(n, NP.old_dx)] + this._nodes[np(n, NP.dx)]) *
-								(this._nodes[np(n, NP.old_dx)] + this._nodes[np(n, NP.dx)]) +
-								(this._nodes[np(n, NP.old_dy)] + this._nodes[np(n, NP.dy)]) *
-									(this._nodes[np(n, NP.old_dy)] + this._nodes[np(n, NP.dy)]),
+							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
 						) / 2
 
 					nodespeed =
-						(this._nodes[np(n, NP.convergence)] * Math.log(1 + traction)) /
+						(this._nodes[n + NP.convergence] * Math.log(1 + traction)) /
 						(1 + Math.sqrt(swinging))
 
 					// Updating node convergence
-					this._nodes[np(n, NP.convergence)] = Math.min(
+					this._nodes[n + NP.convergence] = Math.min(
 						1,
 						Math.sqrt(
 							(nodespeed *
-								(Math.pow(this._nodes[np(n, NP.dx)], 2) +
-									Math.pow(this._nodes[np(n, NP.dy)], 2))) /
+								(Math.pow(this._nodes[n + NP.dx], 2) +
+									Math.pow(this._nodes[n + NP.dy], 2))) /
 								(1 + Math.sqrt(swinging)),
 						),
 					)
 
 					// Updating node's positon
-					this._nodes[np(n, NP.x)] =
-						this._nodes[np(n, NP.x)] +
-						this._nodes[np(n, NP.dx)] *
-							(nodespeed / this.configuration.slowDown)
-					this._nodes[np(n, NP.y)] =
-						this._nodes[np(n, NP.y)] +
-						this._nodes[np(n, NP.dy)] *
-							(nodespeed / this.configuration.slowDown)
+					this._nodes[n + NP.x] =
+						this._nodes[n + NP.x] +
+						this._nodes[n + NP.dx] * (nodespeed / this.configuration.slowDown)
+					this._nodes[n + NP.y] =
+						this._nodes[n + NP.y] +
+						this._nodes[n + NP.dy] * (nodespeed / this.configuration.slowDown)
 				}
 			}
 		}
@@ -635,15 +400,15 @@ export class FA2Algorithm {
 						// Update center of mass and mass (we only do it for non-leaf regions)
 						this._regions[r + RP.massCenterX] =
 							(this._regions[r + RP.massCenterX] * this._regions[r + RP.mass] +
-								this._nodes[np(n, NP.x)] * this._nodes[np(n, NP.mass)]) /
-							(this._regions[r + RP.mass] + this._nodes[np(n, NP.mass)])
+								this._nodes[n + NP.x] * this._nodes[n + NP.mass]) /
+							(this._regions[r + RP.mass] + this._nodes[n + NP.mass])
 
 						this._regions[r + RP.massCenterY] =
 							(this._regions[r + RP.massCenterY] * this._regions[r + RP.mass] +
-								this._nodes[np(n, NP.y)] * this._nodes[np(n, NP.mass)]) /
-							(this._regions[r + RP.mass] + this._nodes[np(n, NP.mass)])
+								this._nodes[n + NP.y] * this._nodes[n + NP.mass]) /
+							(this._regions[r + RP.mass] + this._nodes[n + NP.mass])
 
-						this._regions[r + RP.mass] += this._nodes[np(n, NP.mass)]
+						this._regions[r + RP.mass] += this._nodes[n + NP.mass]
 
 						// Iterate on the right quadrant
 						r = q
@@ -737,13 +502,13 @@ export class FA2Algorithm {
 
 							// We remove r[0] from the region r, add its mass to r and record it in q
 							this._regions[r + RP.mass] = this._nodes[
-								np(this._regions[r + RP.node], NP.mass)
+								this._regions[r + RP.node] + NP.mass
 							]
 							this._regions[r + RP.massCenterX] = this._nodes[
-								np(this._regions[r + RP.node], NP.x)
+								this._regions[r + RP.node] + NP.x
 							]
 							this._regions[r + RP.massCenterY] = this._nodes[
-								np(this._regions[r + RP.node], NP.y)
+								this._regions[r + RP.node] + NP.y
 							]
 
 							this._regions[q + RP.node] = this._regions[r + RP.node]
@@ -804,6 +569,225 @@ export class FA2Algorithm {
 			} else {
 				// Bottom Right quarter
 				return this._regions[r + RP.firstChild] + ppr * 3
+			}
+		}
+	}
+
+	private computeRepulsion() {
+		// 2) Repulsion
+		//--------------
+		// NOTES: adjustSize = antiCollision & scalingRatio = coefficient
+
+		if (this.configuration.barnesHutOptimize) {
+			let coefficient = this.configuration.scalingRatio
+
+			// Applying repulsion through regions
+			for (let n = 0; n < this.nodesLength; n += ppn) {
+				// Computing leaf quad nodes iteration
+
+				let r = 0 // Starting with root region
+				while (true) {
+					if (this._regions[r + RP.firstChild] >= 0) {
+						let factor
+						// The region has sub-regions
+
+						// We run the Barnes Hut test to see if we are at the right distance
+						let distance = Math.sqrt(
+							this._nodes[n + NP.x] -
+								this._regions[r + RP.massCenterX] ** 2 +
+								this._nodes[n + NP.y] -
+								this._regions[r + RP.massCenterY] ** 2,
+						)
+
+						if (
+							(2 * this._regions[r + RP.size]) / distance <
+							this.configuration.barnesHutTheta
+						) {
+							// We treat the region as a single body, and we repulse
+							let xDist =
+								this._nodes[n + NP.x] - this._regions[r + RP.massCenterX]
+							let yDist =
+								this._nodes[n + NP.y] - this._regions[r + RP.massCenterY]
+
+							if (this.configuration.adjustSize) {
+								//-- Linear Anti-collision Repulsion
+								if (distance > 0) {
+									factor =
+										(coefficient *
+											this._nodes[n + NP.mass] *
+											this._regions[r + RP.mass]) /
+										distance /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								} else if (distance < 0) {
+									factor =
+										(-coefficient *
+											this._nodes[n + NP.mass] *
+											this._regions[r + RP.mass]) /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								}
+							} else {
+								//-- Linear Repulsion
+								if (distance > 0) {
+									factor =
+										(coefficient *
+											this._nodes[n + NP.mass] *
+											this._regions[r + RP.mass]) /
+										distance /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								}
+							}
+
+							// When this is done, we iterate. We have to look at the next sibling.
+							if (this._regions[r + RP.nextSibling] < 0) break // No next sibling: we have finished the tree
+							r = this._regions[r + RP.nextSibling]
+							continue
+						} else {
+							// The region is too close and we have to look at sub-regions
+							r = this._regions[r + RP.firstChild]
+							continue
+						}
+					} else {
+						let xDist
+						let yDist
+						let distance
+						let factor
+						// The region has no sub-region
+						// If there is a node r[0] and it is not n, then repulse
+
+						if (
+							this._regions[r + RP.node] >= 0 &&
+							this._regions[r + RP.node] !== n
+						) {
+							xDist =
+								this._nodes[n + NP.x] -
+								this._nodes[this._regions[r + RP.node] + NP.x]
+							yDist =
+								this._nodes[n + NP.y] -
+								this._nodes[this._regions[r + RP.node] + NP.y]
+
+							distance = Math.sqrt(xDist * xDist + yDist * yDist)
+
+							if (this.configuration.adjustSize) {
+								//-- Linear Anti-collision Repulsion
+								if (distance > 0) {
+									factor =
+										(coefficient *
+											this._nodes[n + NP.mass] *
+											this._nodes[this._regions[r + RP.node] + NP.mass]) /
+										distance /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								} else if (distance < 0) {
+									factor =
+										(-coefficient *
+											this._nodes[n + NP.mass] *
+											this._nodes[this._regions[r + RP.node] + NP.mass]) /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								}
+							} else {
+								//-- Linear Repulsion
+								if (distance > 0) {
+									factor =
+										(coefficient *
+											this._nodes[n + NP.mass] *
+											this._nodes[this._regions[r + RP.node] + NP.mass]) /
+										distance /
+										distance
+
+									this._nodes[n + NP.dx] += xDist * factor
+									this._nodes[n + NP.dy] += yDist * factor
+								}
+							}
+						}
+
+						// When this is done, we iterate. We have to look at the next sibling.
+						if (this._regions[r + RP.nextSibling] < 0) break // No next sibling: we have finished the tree
+						r = this._regions[r + RP.nextSibling]
+						continue
+					}
+				}
+			}
+		} else {
+			let coefficient = this.configuration.scalingRatio
+
+			// Square iteration
+			for (let n1 = 0; n1 < this.nodesLength; n1 += ppn) {
+				for (let n2 = 0; n2 < n1; n2 += ppn) {
+					// Common to both methods
+					let xDist = this._nodes[n1 + NP.x] - this._nodes[n2 + NP.x]
+					let yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
+					let factor
+
+					if (this.configuration.adjustSize) {
+						//-- Anticollision Linear Repulsion
+						let distance =
+							Math.sqrt(xDist * xDist + yDist * yDist) -
+							this._nodes[n1 + NP.size] -
+							this._nodes[n2 + NP.size]
+
+						if (distance > 0) {
+							factor =
+								(coefficient *
+									this._nodes[n1 + NP.mass] *
+									this._nodes[n2 + NP.mass]) /
+								distance /
+								distance
+
+							// Updating nodes' dx and dy
+							this._nodes[n1 + NP.dx] += xDist * factor
+							this._nodes[n1 + NP.dy] += yDist * factor
+
+							this._nodes[n2 + NP.dx] += xDist * factor
+							this._nodes[n2 + NP.dy] += yDist * factor
+						} else if (distance < 0) {
+							factor =
+								100 *
+								coefficient *
+								this._nodes[n1 + NP.mass] *
+								this._nodes[n2 + NP.mass]
+
+							// Updating nodes' dx and dy
+							this._nodes[n1 + NP.dx] += xDist * factor
+							this._nodes[n1 + NP.dy] += yDist * factor
+
+							this._nodes[n2 + NP.dx] -= xDist * factor
+							this._nodes[n2 + NP.dy] -= yDist * factor
+						}
+					} else {
+						//-- Linear Repulsion
+						let distance = Math.sqrt(xDist * xDist + yDist * yDist)
+
+						if (distance > 0) {
+							factor =
+								(coefficient *
+									this._nodes[n1 + NP.mass] *
+									this._nodes[n2 + NP.mass]) /
+								distance /
+								distance
+
+							// Updating nodes' dx and dy
+							this._nodes[n1 + NP.dx] += xDist * factor
+							this._nodes[n1 + NP.dy] += yDist * factor
+
+							this._nodes[n2 + NP.dx] -= xDist * factor
+							this._nodes[n2 + NP.dy] -= yDist * factor
+						}
+					}
+				}
 			}
 		}
 	}
