@@ -1,13 +1,9 @@
 {
-  "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "target": "ES5",
-    "lib": [
-      "DOM",
-      "ESNext",
-      "WebWorker"
-    ]
-  }
+	"compilerOptions": {
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"allowSyntheticDefaultImports": true,
+		"target": "ES5",
+		"lib": ["DOM", "ESNext", "WebWorker"]
+	}
 }
