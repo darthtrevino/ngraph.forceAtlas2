@@ -5,74 +5,59 @@ export const ppe = 3
 export const ppr = 9
 const MAX_FORCE = 10
 
-/**
- * Matrices properties accessors
- */
-const nodeProperties: Record<string, number> = {
-	x: 0,
-	y: 1,
-	dx: 2,
-	dy: 3,
-	old_dx: 4,
-	old_dy: 5,
-	mass: 6,
-	convergence: 7,
-	size: 8,
-	fixed: 9,
+export enum NodeProp {
+	x = 0,
+	y = 1,
+	dx = 2,
+	dy = 3,
+	old_dx = 4,
+	old_dy = 5,
+	mass = 6,
+	convergence = 7,
+	size = 8,
+	fixed = 9,
 }
 
-const edgeProperties: Record<string, number> = {
-	source: 0,
-	target: 1,
-	weight: 2,
+export enum EdgeProp {
+	source = 0,
+	target = 1,
+	weight = 2,
 }
 
-const regionProperties: Record<string, number> = {
-	node: 0,
-	centerX: 1,
-	centerY: 2,
-	size: 3,
-	nextSibling: 4,
-	firstChild: 5,
-	mass: 6,
-	massCenterX: 7,
-	massCenterY: 8,
+export enum RegionProp {
+	node = 0,
+	centerX = 1,
+	centerY = 2,
+	size = 3,
+	nextSibling = 4,
+	firstChild = 5,
+	mass = 6,
+	massCenterX = 7,
+	massCenterY = 8,
 }
 
-function np(i: number, p: string) {
+function np(i: number, p: NodeProp) {
 	// DEBUG: safeguards
-	if (i % ppn !== 0) throw 'np: non correct (' + i + ').'
-
-	if (p in nodeProperties) return i + nodeProperties[p]
-	else
-		throw 'ForceAtlas2.Worker - ' +
-			'Inexistant node property given (' +
-			p +
-			').'
+	if (i % ppn !== 0) {
+		throw new Error(`np: non correct (${i})`)
+	}
+	return i + p
 }
 
-function ep(i: number, p: string) {
+function ep(i: number, p: EdgeProp) {
 	// DEBUG: safeguards
-	if (i % ppe !== 0) throw 'ep: non correct (' + i + ').'
-
-	if (p in edgeProperties) return i + edgeProperties[p]
-	else
-		throw 'ForceAtlas2.Worker - ' +
-			'Inexistant edge property given (' +
-			p +
-			').'
+	if (i % ppe !== 0) {
+		throw new Error(`ep: non correct (${i})`)
+	}
+	return i + p
 }
 
-function rp(i: number, p: string) {
+function rp(i: number, p: RegionProp) {
 	// DEBUG: safeguards
-	if (i % ppr !== 0) throw 'rp: non correct (' + i + ').'
-
-	if (p in regionProperties) return i + regionProperties[p]
-	else
-		throw 'ForceAtlas2.Worker - ' +
-			'Inexistant region property given (' +
-			p +
-			').'
+	if (i % ppr !== 0) {
+		throw new Error(`rp: non correct (${i})`)
+	}
+	return i + p
 }
 
 export class FA2Algorithm {
@@ -148,17 +133,17 @@ export class FA2Algorithm {
 
 		// Resetting positions & computing max values
 		for (let n = 0; n < this.nodesLength; n += ppn) {
-			NodeMatrix[np(n, 'old_dx')] = NodeMatrix[np(n, 'dx')]
-			NodeMatrix[np(n, 'old_dy')] = NodeMatrix[np(n, 'dy')]
-			NodeMatrix[np(n, 'dx')] = 0
-			NodeMatrix[np(n, 'dy')] = 0
+			NodeMatrix[np(n, NodeProp.old_dx)] = NodeMatrix[np(n, NodeProp.dx)]
+			NodeMatrix[np(n, NodeProp.old_dy)] = NodeMatrix[np(n, NodeProp.dy)]
+			NodeMatrix[np(n, NodeProp.dx)] = 0
+			NodeMatrix[np(n, NodeProp.dy)] = 0
 		}
 
 		// If outbound attraction distribution, compensate
 		if (this.configuration.outboundAttractionDistribution) {
 			outboundAttCompensation = 0
 			for (let n = 0; n < this.nodesLength; n += ppn) {
-				outboundAttCompensation += NodeMatrix[np(n, 'mass')]
+				outboundAttCompensation += NodeMatrix[np(n, NodeProp.mass)]
 			}
 
 			outboundAttCompensation /= this.nodesLength
@@ -184,22 +169,22 @@ export class FA2Algorithm {
 
 			// Computing min and max values
 			for (n = 0; n < this.nodesLength; n += ppn) {
-				minX = Math.min(minX, NodeMatrix[np(n, 'x')])
-				maxX = Math.max(maxX, NodeMatrix[np(n, 'x')])
-				minY = Math.min(minY, NodeMatrix[np(n, 'y')])
-				maxY = Math.max(maxY, NodeMatrix[np(n, 'y')])
+				minX = Math.min(minX, NodeMatrix[np(n, NodeProp.x)])
+				maxX = Math.max(maxX, NodeMatrix[np(n, NodeProp.x)])
+				minY = Math.min(minY, NodeMatrix[np(n, NodeProp.y)])
+				maxY = Math.max(maxY, NodeMatrix[np(n, NodeProp.y)])
 			}
 
 			// Build the Barnes Hut root region
-			RegionMatrix[rp(0, 'node')] = -1
-			RegionMatrix[rp(0, 'centerX')] = (minX + maxX) / 2
-			RegionMatrix[rp(0, 'centerY')] = (minY + maxY) / 2
-			RegionMatrix[rp(0, 'size')] = Math.max(maxX - minX, maxY - minY)
-			RegionMatrix[rp(0, 'nextSibling')] = -1
-			RegionMatrix[rp(0, 'firstChild')] = -1
-			RegionMatrix[rp(0, 'mass')] = 0
-			RegionMatrix[rp(0, 'massCenterX')] = 0
-			RegionMatrix[rp(0, 'massCenterY')] = 0
+			RegionMatrix[rp(0, RegionProp.node)] = -1
+			RegionMatrix[rp(0, RegionProp.centerX)] = (minX + maxX) / 2
+			RegionMatrix[rp(0, RegionProp.centerY)] = (minY + maxY) / 2
+			RegionMatrix[rp(0, RegionProp.size)] = Math.max(maxX - minX, maxY - minY)
+			RegionMatrix[rp(0, RegionProp.nextSibling)] = -1
+			RegionMatrix[rp(0, RegionProp.firstChild)] = -1
+			RegionMatrix[rp(0, RegionProp.mass)] = 0
+			RegionMatrix[rp(0, RegionProp.massCenterX)] = 0
+			RegionMatrix[rp(0, RegionProp.massCenterY)] = 0
 
 			// Add each node in the tree
 			l = 1
@@ -211,7 +196,7 @@ export class FA2Algorithm {
 					// Are there sub-regions?
 
 					// We look at first child index
-					if (RegionMatrix[rp(r, 'firstChild')] >= 0) {
+					if (RegionMatrix[rp(r, RegionProp.firstChild)] >= 0) {
 						// There are sub-regions
 
 						// We just iterate to find a "leave" of the tree
@@ -219,38 +204,52 @@ export class FA2Algorithm {
 						// (see next case)
 
 						// Find the quadrant of n
-						if (NodeMatrix[np(n, 'x')] < RegionMatrix[rp(r, 'centerX')]) {
-							if (NodeMatrix[np(n, 'y')] < RegionMatrix[rp(r, 'centerY')]) {
+						if (
+							NodeMatrix[np(n, NodeProp.x)] <
+							RegionMatrix[rp(r, RegionProp.centerX)]
+						) {
+							if (
+								NodeMatrix[np(n, NodeProp.y)] <
+								RegionMatrix[rp(r, RegionProp.centerY)]
+							) {
 								// Top Left quarter
-								q = RegionMatrix[rp(r, 'firstChild')]
+								q = RegionMatrix[rp(r, RegionProp.firstChild)]
 							} else {
 								// Bottom Left quarter
-								q = RegionMatrix[rp(r, 'firstChild')] + ppr
+								q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr
 							}
 						} else {
-							if (NodeMatrix[np(n, 'y')] < RegionMatrix[rp(r, 'centerY')]) {
+							if (
+								NodeMatrix[np(n, NodeProp.y)] <
+								RegionMatrix[rp(r, RegionProp.centerY)]
+							) {
 								// Top Right quarter
-								q = RegionMatrix[rp(r, 'firstChild')] + ppr * 2
+								q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 2
 							} else {
 								// Bottom Right quarter
-								q = RegionMatrix[rp(r, 'firstChild')] + ppr * 3
+								q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 3
 							}
 						}
 
 						// Update center of mass and mass (we only do it for non-leave regions)
-						RegionMatrix[rp(r, 'massCenterX')] =
-							(RegionMatrix[rp(r, 'massCenterX')] *
-								RegionMatrix[rp(r, 'mass')] +
-								NodeMatrix[np(n, 'x')] * NodeMatrix[np(n, 'mass')]) /
-							(RegionMatrix[rp(r, 'mass')] + NodeMatrix[np(n, 'mass')])
+						RegionMatrix[rp(r, RegionProp.massCenterX)] =
+							(RegionMatrix[rp(r, RegionProp.massCenterX)] *
+								RegionMatrix[rp(r, RegionProp.mass)] +
+								NodeMatrix[np(n, NodeProp.x)] *
+									NodeMatrix[np(n, NodeProp.mass)]) /
+							(RegionMatrix[rp(r, RegionProp.mass)] +
+								NodeMatrix[np(n, NodeProp.mass)])
 
-						RegionMatrix[rp(r, 'massCenterY')] =
-							(RegionMatrix[rp(r, 'massCenterY')] *
-								RegionMatrix[rp(r, 'mass')] +
-								NodeMatrix[np(n, 'y')] * NodeMatrix[np(n, 'mass')]) /
-							(RegionMatrix[rp(r, 'mass')] + NodeMatrix[np(n, 'mass')])
+						RegionMatrix[rp(r, RegionProp.massCenterY)] =
+							(RegionMatrix[rp(r, RegionProp.massCenterY)] *
+								RegionMatrix[rp(r, RegionProp.mass)] +
+								NodeMatrix[np(n, NodeProp.y)] *
+									NodeMatrix[np(n, NodeProp.mass)]) /
+							(RegionMatrix[rp(r, RegionProp.mass)] +
+								NodeMatrix[np(n, NodeProp.mass)])
 
-						RegionMatrix[rp(r, 'mass')] += NodeMatrix[np(n, 'mass')]
+						RegionMatrix[rp(r, RegionProp.mass)] +=
+							NodeMatrix[np(n, NodeProp.mass)]
 
 						// Iterate on the right quadrant
 						r = q
@@ -259,10 +258,10 @@ export class FA2Algorithm {
 						// There are no sub-regions: we are in a "leave"
 
 						// Is there a node in this leave?
-						if (RegionMatrix[rp(r, 'node')] < 0) {
+						if (RegionMatrix[rp(r, RegionProp.node)] < 0) {
 							// There is no node in region:
 							// we record node n and go on
-							RegionMatrix[rp(r, 'node')] = n
+							RegionMatrix[rp(r, RegionProp.node)] = n
 							break
 						} else {
 							// There is a node in this region
@@ -273,69 +272,69 @@ export class FA2Algorithm {
 							// we will iterate.
 
 							// Create sub-regions
-							RegionMatrix[rp(r, 'firstChild')] = l * ppr
-							w = RegionMatrix[rp(r, 'size')] / 2 // new size (half)
+							RegionMatrix[rp(r, RegionProp.firstChild)] = l * ppr
+							w = RegionMatrix[rp(r, RegionProp.size)] / 2 // new size (half)
 
 							// NOTE: we use screen coordinates
 							// from Top Left to Bottom Right
 
 							// Top Left sub-region
-							g = RegionMatrix[rp(r, 'firstChild')]
+							g = RegionMatrix[rp(r, RegionProp.firstChild)]
 
-							RegionMatrix[rp(g, 'node')] = -1
-							RegionMatrix[rp(g, 'centerX')] =
-								RegionMatrix[rp(r, 'centerX')] - w
-							RegionMatrix[rp(g, 'centerY')] =
-								RegionMatrix[rp(r, 'centerY')] - w
-							RegionMatrix[rp(g, 'size')] = w
-							RegionMatrix[rp(g, 'nextSibling')] = g + ppr
-							RegionMatrix[rp(g, 'firstChild')] = -1
-							RegionMatrix[rp(g, 'mass')] = 0
-							RegionMatrix[rp(g, 'massCenterX')] = 0
-							RegionMatrix[rp(g, 'massCenterY')] = 0
+							RegionMatrix[rp(g, RegionProp.node)] = -1
+							RegionMatrix[rp(g, RegionProp.centerX)] =
+								RegionMatrix[rp(r, RegionProp.centerX)] - w
+							RegionMatrix[rp(g, RegionProp.centerY)] =
+								RegionMatrix[rp(r, RegionProp.centerY)] - w
+							RegionMatrix[rp(g, RegionProp.size)] = w
+							RegionMatrix[rp(g, RegionProp.nextSibling)] = g + ppr
+							RegionMatrix[rp(g, RegionProp.firstChild)] = -1
+							RegionMatrix[rp(g, RegionProp.mass)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterX)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterY)] = 0
 
 							// Bottom Left sub-region
 							g += ppr
-							RegionMatrix[rp(g, 'node')] = -1
-							RegionMatrix[rp(g, 'centerX')] =
-								RegionMatrix[rp(r, 'centerX')] - w
-							RegionMatrix[rp(g, 'centerY')] =
-								RegionMatrix[rp(r, 'centerY')] + w
-							RegionMatrix[rp(g, 'size')] = w
-							RegionMatrix[rp(g, 'nextSibling')] = g + ppr
-							RegionMatrix[rp(g, 'firstChild')] = -1
-							RegionMatrix[rp(g, 'mass')] = 0
-							RegionMatrix[rp(g, 'massCenterX')] = 0
-							RegionMatrix[rp(g, 'massCenterY')] = 0
+							RegionMatrix[rp(g, RegionProp.node)] = -1
+							RegionMatrix[rp(g, RegionProp.centerX)] =
+								RegionMatrix[rp(r, RegionProp.centerX)] - w
+							RegionMatrix[rp(g, RegionProp.centerY)] =
+								RegionMatrix[rp(r, RegionProp.centerY)] + w
+							RegionMatrix[rp(g, RegionProp.size)] = w
+							RegionMatrix[rp(g, RegionProp.nextSibling)] = g + ppr
+							RegionMatrix[rp(g, RegionProp.firstChild)] = -1
+							RegionMatrix[rp(g, RegionProp.mass)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterX)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterY)] = 0
 
 							// Top Right sub-region
 							g += ppr
-							RegionMatrix[rp(g, 'node')] = -1
-							RegionMatrix[rp(g, 'centerX')] =
-								RegionMatrix[rp(r, 'centerX')] + w
-							RegionMatrix[rp(g, 'centerY')] =
-								RegionMatrix[rp(r, 'centerY')] - w
-							RegionMatrix[rp(g, 'size')] = w
-							RegionMatrix[rp(g, 'nextSibling')] = g + ppr
-							RegionMatrix[rp(g, 'firstChild')] = -1
-							RegionMatrix[rp(g, 'mass')] = 0
-							RegionMatrix[rp(g, 'massCenterX')] = 0
-							RegionMatrix[rp(g, 'massCenterY')] = 0
+							RegionMatrix[rp(g, RegionProp.node)] = -1
+							RegionMatrix[rp(g, RegionProp.centerX)] =
+								RegionMatrix[rp(r, RegionProp.centerX)] + w
+							RegionMatrix[rp(g, RegionProp.centerY)] =
+								RegionMatrix[rp(r, RegionProp.centerY)] - w
+							RegionMatrix[rp(g, RegionProp.size)] = w
+							RegionMatrix[rp(g, RegionProp.nextSibling)] = g + ppr
+							RegionMatrix[rp(g, RegionProp.firstChild)] = -1
+							RegionMatrix[rp(g, RegionProp.mass)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterX)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterY)] = 0
 
 							// Bottom Right sub-region
 							g += ppr
-							RegionMatrix[rp(g, 'node')] = -1
-							RegionMatrix[rp(g, 'centerX')] =
-								RegionMatrix[rp(r, 'centerX')] + w
-							RegionMatrix[rp(g, 'centerY')] =
-								RegionMatrix[rp(r, 'centerY')] + w
-							RegionMatrix[rp(g, 'size')] = w
-							RegionMatrix[rp(g, 'nextSibling')] =
-								RegionMatrix[rp(r, 'nextSibling')]
-							RegionMatrix[rp(g, 'firstChild')] = -1
-							RegionMatrix[rp(g, 'mass')] = 0
-							RegionMatrix[rp(g, 'massCenterX')] = 0
-							RegionMatrix[rp(g, 'massCenterY')] = 0
+							RegionMatrix[rp(g, RegionProp.node)] = -1
+							RegionMatrix[rp(g, RegionProp.centerX)] =
+								RegionMatrix[rp(r, RegionProp.centerX)] + w
+							RegionMatrix[rp(g, RegionProp.centerY)] =
+								RegionMatrix[rp(r, RegionProp.centerY)] + w
+							RegionMatrix[rp(g, RegionProp.size)] = w
+							RegionMatrix[rp(g, RegionProp.nextSibling)] =
+								RegionMatrix[rp(r, RegionProp.nextSibling)]
+							RegionMatrix[rp(g, RegionProp.firstChild)] = -1
+							RegionMatrix[rp(g, RegionProp.mass)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterX)] = 0
+							RegionMatrix[rp(g, RegionProp.massCenterY)] = 0
 
 							l += 4
 
@@ -345,59 +344,74 @@ export class FA2Algorithm {
 
 							// Find the quadrant of the old node
 							if (
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'x')] <
-								RegionMatrix[rp(r, 'centerX')]
+								NodeMatrix[
+									np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.x)
+								] < RegionMatrix[rp(r, RegionProp.centerX)]
 							) {
 								if (
-									NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'y')] <
-									RegionMatrix[rp(r, 'centerY')]
+									NodeMatrix[
+										np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.y)
+									] < RegionMatrix[rp(r, RegionProp.centerY)]
 								) {
 									// Top Left quarter
-									q = RegionMatrix[rp(r, 'firstChild')]
+									q = RegionMatrix[rp(r, RegionProp.firstChild)]
 								} else {
 									// Bottom Left quarter
-									q = RegionMatrix[rp(r, 'firstChild')] + ppr
+									q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr
 								}
 							} else {
 								if (
-									NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'y')] <
-									RegionMatrix[rp(r, 'centerY')]
+									NodeMatrix[
+										np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.y)
+									] < RegionMatrix[rp(r, RegionProp.centerY)]
 								) {
 									// Top Right quarter
-									q = RegionMatrix[rp(r, 'firstChild')] + ppr * 2
+									q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 2
 								} else {
 									// Bottom Right quarter
-									q = RegionMatrix[rp(r, 'firstChild')] + ppr * 3
+									q = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 3
 								}
 							}
 
 							// We remove r[0] from the region r, add its mass to r and record it in q
-							RegionMatrix[rp(r, 'mass')] =
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'mass')]
-							RegionMatrix[rp(r, 'massCenterX')] =
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'x')]
-							RegionMatrix[rp(r, 'massCenterY')] =
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'y')]
+							RegionMatrix[rp(r, RegionProp.mass)] =
+								NodeMatrix[
+									np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.mass)
+								]
+							RegionMatrix[rp(r, RegionProp.massCenterX)] =
+								NodeMatrix[np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.x)]
+							RegionMatrix[rp(r, RegionProp.massCenterY)] =
+								NodeMatrix[np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.y)]
 
-							RegionMatrix[rp(q, 'node')] = RegionMatrix[rp(r, 'node')]
-							RegionMatrix[rp(r, 'node')] = -1
+							RegionMatrix[rp(q, RegionProp.node)] =
+								RegionMatrix[rp(r, RegionProp.node)]
+							RegionMatrix[rp(r, RegionProp.node)] = -1
 
 							// Find the quadrant of n
-							if (NodeMatrix[np(n, 'x')] < RegionMatrix[rp(r, 'centerX')]) {
-								if (NodeMatrix[np(n, 'y')] < RegionMatrix[rp(r, 'centerY')]) {
+							if (
+								NodeMatrix[np(n, NodeProp.x)] <
+								RegionMatrix[rp(r, RegionProp.centerX)]
+							) {
+								if (
+									NodeMatrix[np(n, NodeProp.y)] <
+									RegionMatrix[rp(r, RegionProp.centerY)]
+								) {
 									// Top Left quarter
-									q2 = RegionMatrix[rp(r, 'firstChild')]
+									q2 = RegionMatrix[rp(r, RegionProp.firstChild)]
 								} else {
 									// Bottom Left quarter
-									q2 = RegionMatrix[rp(r, 'firstChild')] + ppr
+									q2 = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr
 								}
 							} else {
-								if (NodeMatrix[np(n, 'y')] < RegionMatrix[rp(r, 'centerY')]) {
+								if (
+									NodeMatrix[np(n, NodeProp.y)] <
+									RegionMatrix[rp(r, RegionProp.centerY)]
+								) {
 									// Top Right quarter
-									q2 = RegionMatrix[rp(r, 'firstChild')] + ppr * 2
+									q2 = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 2
 								} else {
 									// Bottom Right quarter
-									q2 = RegionMatrix[rp(r, 'firstChild')] + ppr * 3
+									q2 = RegionMatrix[rp(r, RegionProp.firstChild)] + ppr * 3
 								}
 							}
 
@@ -410,7 +424,7 @@ export class FA2Algorithm {
 
 							// If both quadrants are different, we record n
 							// in its quadrant
-							RegionMatrix[rp(q2, 'node')] = n
+							RegionMatrix[rp(q2, RegionProp.node)] = n
 							break
 						}
 					}
@@ -431,76 +445,80 @@ export class FA2Algorithm {
 
 				r = 0 // Starting with root region
 				while (true) {
-					if (RegionMatrix[rp(r, 'firstChild')] >= 0) {
+					if (RegionMatrix[rp(r, RegionProp.firstChild)] >= 0) {
 						// The region has sub-regions
 
 						// We run the Barnes Hut test to see if we are at the right distance
 						distance = Math.sqrt(
 							Math.pow(
-								NodeMatrix[np(n, 'x')] - RegionMatrix[rp(r, 'massCenterX')],
+								NodeMatrix[np(n, NodeProp.x)] -
+									RegionMatrix[rp(r, RegionProp.massCenterX)],
 								2,
 							) +
 								Math.pow(
-									NodeMatrix[np(n, 'y')] - RegionMatrix[rp(r, 'massCenterY')],
+									NodeMatrix[np(n, NodeProp.y)] -
+										RegionMatrix[rp(r, RegionProp.massCenterY)],
 									2,
 								),
 						)
 
 						if (
-							(2 * RegionMatrix[rp(r, 'size')]) / distance <
+							(2 * RegionMatrix[rp(r, RegionProp.size)]) / distance <
 							this.configuration.barnesHutTheta
 						) {
 							// We treat the region as a single body, and we repulse
 
 							xDist =
-								NodeMatrix[np(n, 'x')] - RegionMatrix[rp(r, 'massCenterX')]
+								NodeMatrix[np(n, NodeProp.x)] -
+								RegionMatrix[rp(r, RegionProp.massCenterX)]
 							yDist =
-								NodeMatrix[np(n, 'y')] - RegionMatrix[rp(r, 'massCenterY')]
+								NodeMatrix[np(n, NodeProp.y)] -
+								RegionMatrix[rp(r, RegionProp.massCenterY)]
 
 							if (this.configuration.adjustSize) {
 								//-- Linear Anti-collision Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											RegionMatrix[rp(r, 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											RegionMatrix[rp(r, RegionProp.mass)]) /
 										distance /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								} else if (distance < 0) {
 									factor =
 										(-coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											RegionMatrix[rp(r, 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											RegionMatrix[rp(r, RegionProp.mass)]) /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								}
 							} else {
 								//-- Linear Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											RegionMatrix[rp(r, 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											RegionMatrix[rp(r, RegionProp.mass)]) /
 										distance /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								}
 							}
 
 							// When this is done, we iterate. We have to look at the next sibling.
-							if (RegionMatrix[rp(r, 'nextSibling')] < 0) break // No next sibling: we have finished the tree
-							r = RegionMatrix[rp(r, 'nextSibling')]
+							if (RegionMatrix[rp(r, RegionProp.nextSibling)] < 0) break // No next sibling: we have finished the tree
+							r = RegionMatrix[rp(r, RegionProp.nextSibling)]
 							continue
 						} else {
 							// The region is too close and we have to look at sub-regions
-							r = RegionMatrix[rp(r, 'firstChild')]
+							r = RegionMatrix[rp(r, RegionProp.firstChild)]
 							continue
 						}
 					} else {
@@ -508,15 +526,15 @@ export class FA2Algorithm {
 						// If there is a node r[0] and it is not n, then repulse
 
 						if (
-							RegionMatrix[rp(r, 'node')] >= 0 &&
-							RegionMatrix[rp(r, 'node')] !== n
+							RegionMatrix[rp(r, RegionProp.node)] >= 0 &&
+							RegionMatrix[rp(r, RegionProp.node)] !== n
 						) {
 							xDist =
-								NodeMatrix[np(n, 'x')] -
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'x')]
+								NodeMatrix[np(n, NodeProp.x)] -
+								NodeMatrix[np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.x)]
 							yDist =
-								NodeMatrix[np(n, 'y')] -
-								NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'y')]
+								NodeMatrix[np(n, NodeProp.y)] -
+								NodeMatrix[np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.y)]
 
 							distance = Math.sqrt(xDist * xDist + yDist * yDist)
 
@@ -525,42 +543,48 @@ export class FA2Algorithm {
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											NodeMatrix[
+												np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.mass)
+											]) /
 										distance /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								} else if (distance < 0) {
 									factor =
 										(-coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											NodeMatrix[
+												np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.mass)
+											]) /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								}
 							} else {
 								//-- Linear Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											NodeMatrix[np(n, 'mass')] *
-											NodeMatrix[np(RegionMatrix[rp(r, 'node')], 'mass')]) /
+											NodeMatrix[np(n, NodeProp.mass)] *
+											NodeMatrix[
+												np(RegionMatrix[rp(r, RegionProp.node)], NodeProp.mass)
+											]) /
 										distance /
 										distance
 
-									NodeMatrix[np(n, 'dx')] += xDist * factor
-									NodeMatrix[np(n, 'dy')] += yDist * factor
+									NodeMatrix[np(n, NodeProp.dx)] += xDist * factor
+									NodeMatrix[np(n, NodeProp.dy)] += yDist * factor
 								}
 							}
 						}
 
 						// When this is done, we iterate. We have to look at the next sibling.
-						if (RegionMatrix[rp(r, 'nextSibling')] < 0) break // No next sibling: we have finished the tree
-						r = RegionMatrix[rp(r, 'nextSibling')]
+						if (RegionMatrix[rp(r, RegionProp.nextSibling)] < 0) break // No next sibling: we have finished the tree
+						r = RegionMatrix[rp(r, RegionProp.nextSibling)]
 						continue
 					}
 				}
@@ -572,43 +596,45 @@ export class FA2Algorithm {
 			for (n1 = 0; n1 < this.nodesLength; n1 += ppn) {
 				for (n2 = 0; n2 < n1; n2 += ppn) {
 					// Common to both methods
-					xDist = NodeMatrix[np(n1, 'x')] - NodeMatrix[np(n2, 'x')]
-					yDist = NodeMatrix[np(n1, 'y')] - NodeMatrix[np(n2, 'y')]
+					xDist =
+						NodeMatrix[np(n1, NodeProp.x)] - NodeMatrix[np(n2, NodeProp.x)]
+					yDist =
+						NodeMatrix[np(n1, NodeProp.y)] - NodeMatrix[np(n2, NodeProp.y)]
 
 					if (this.configuration.adjustSize) {
 						//-- Anticollision Linear Repulsion
 						distance =
 							Math.sqrt(xDist * xDist + yDist * yDist) -
-							NodeMatrix[np(n1, 'size')] -
-							NodeMatrix[np(n2, 'size')]
+							NodeMatrix[np(n1, NodeProp.size)] -
+							NodeMatrix[np(n2, NodeProp.size)]
 
 						if (distance > 0) {
 							factor =
 								(coefficient *
-									NodeMatrix[np(n1, 'mass')] *
-									NodeMatrix[np(n2, 'mass')]) /
+									NodeMatrix[np(n1, NodeProp.mass)] *
+									NodeMatrix[np(n2, NodeProp.mass)]) /
 								distance /
 								distance
 
 							// Updating nodes' dx and dy
-							NodeMatrix[np(n1, 'dx')] += xDist * factor
-							NodeMatrix[np(n1, 'dy')] += yDist * factor
+							NodeMatrix[np(n1, NodeProp.dx)] += xDist * factor
+							NodeMatrix[np(n1, NodeProp.dy)] += yDist * factor
 
-							NodeMatrix[np(n2, 'dx')] += xDist * factor
-							NodeMatrix[np(n2, 'dy')] += yDist * factor
+							NodeMatrix[np(n2, NodeProp.dx)] += xDist * factor
+							NodeMatrix[np(n2, NodeProp.dy)] += yDist * factor
 						} else if (distance < 0) {
 							factor =
 								100 *
 								coefficient *
-								NodeMatrix[np(n1, 'mass')] *
-								NodeMatrix[np(n2, 'mass')]
+								NodeMatrix[np(n1, NodeProp.mass)] *
+								NodeMatrix[np(n2, NodeProp.mass)]
 
 							// Updating nodes' dx and dy
-							NodeMatrix[np(n1, 'dx')] += xDist * factor
-							NodeMatrix[np(n1, 'dy')] += yDist * factor
+							NodeMatrix[np(n1, NodeProp.dx)] += xDist * factor
+							NodeMatrix[np(n1, NodeProp.dy)] += yDist * factor
 
-							NodeMatrix[np(n2, 'dx')] -= xDist * factor
-							NodeMatrix[np(n2, 'dy')] -= yDist * factor
+							NodeMatrix[np(n2, NodeProp.dx)] -= xDist * factor
+							NodeMatrix[np(n2, NodeProp.dy)] -= yDist * factor
 						}
 					} else {
 						//-- Linear Repulsion
@@ -617,17 +643,17 @@ export class FA2Algorithm {
 						if (distance > 0) {
 							factor =
 								(coefficient *
-									NodeMatrix[np(n1, 'mass')] *
-									NodeMatrix[np(n2, 'mass')]) /
+									NodeMatrix[np(n1, NodeProp.mass)] *
+									NodeMatrix[np(n2, NodeProp.mass)]) /
 								distance /
 								distance
 
 							// Updating nodes' dx and dy
-							NodeMatrix[np(n1, 'dx')] += xDist * factor
-							NodeMatrix[np(n1, 'dy')] += yDist * factor
+							NodeMatrix[np(n1, NodeProp.dx)] += xDist * factor
+							NodeMatrix[np(n1, NodeProp.dy)] += yDist * factor
 
-							NodeMatrix[np(n2, 'dx')] -= xDist * factor
-							NodeMatrix[np(n2, 'dy')] -= yDist * factor
+							NodeMatrix[np(n2, NodeProp.dx)] -= xDist * factor
+							NodeMatrix[np(n2, NodeProp.dy)] -= yDist * factor
 						}
 					}
 				}
@@ -642,22 +668,24 @@ export class FA2Algorithm {
 			factor = 0
 
 			// Common to both methods
-			xDist = NodeMatrix[np(n, 'x')]
-			yDist = NodeMatrix[np(n, 'y')]
+			xDist = NodeMatrix[np(n, NodeProp.x)]
+			yDist = NodeMatrix[np(n, NodeProp.y)]
 			distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
 
 			if (this.configuration.strongGravityMode) {
 				//-- Strong gravity
-				if (distance > 0) factor = coefficient * NodeMatrix[np(n, 'mass')] * g
+				if (distance > 0)
+					factor = coefficient * NodeMatrix[np(n, NodeProp.mass)] * g
 			} else {
 				//-- Linear Anti-collision Repulsion n
 				if (distance > 0)
-					factor = (coefficient * NodeMatrix[np(n, 'mass')] * g) / distance
+					factor =
+						(coefficient * NodeMatrix[np(n, NodeProp.mass)] * g) / distance
 			}
 
 			// Updating node's dx and dy
-			NodeMatrix[np(n, 'dx')] -= xDist * factor
-			NodeMatrix[np(n, 'dy')] -= yDist * factor
+			NodeMatrix[np(n, NodeProp.dx)] -= xDist * factor
+			NodeMatrix[np(n, NodeProp.dy)] -= yDist * factor
 		}
 
 		// 4) Attraction
@@ -671,24 +699,24 @@ export class FA2Algorithm {
 		// TODO: simplify distance
 		// TODO: coefficient is always used as -c --> optimize?
 		for (e = 0; e < this.edgesLength; e += ppe) {
-			n1 = EdgeMatrix[ep(e, 'source')]
-			n2 = EdgeMatrix[ep(e, 'target')]
-			w = EdgeMatrix[ep(e, 'weight')]
+			n1 = EdgeMatrix[ep(e, EdgeProp.source)]
+			n2 = EdgeMatrix[ep(e, EdgeProp.target)]
+			w = EdgeMatrix[ep(e, EdgeProp.weight)]
 
 			// Edge weight influence
 			ewc = Math.pow(w, this.configuration.edgeWeightInfluence)
 
 			// Common measures
-			xDist = NodeMatrix[np(n1, 'x')] - NodeMatrix[np(n2, 'x')]
-			yDist = NodeMatrix[np(n1, 'y')] - NodeMatrix[np(n2, 'y')]
+			xDist = NodeMatrix[np(n1, NodeProp.x)] - NodeMatrix[np(n2, NodeProp.x)]
+			yDist = NodeMatrix[np(n1, NodeProp.y)] - NodeMatrix[np(n2, NodeProp.y)]
 
 			// Applying attraction to nodes
 			if (this.configuration.adjustSizes) {
 				distance = Math.sqrt(
 					Math.pow(xDist, 2) +
 						Math.pow(yDist, 2) -
-						NodeMatrix[np(n1, 'size')] -
-						NodeMatrix[np(n2, 'size')],
+						NodeMatrix[np(n1, NodeProp.size)] -
+						NodeMatrix[np(n2, NodeProp.size)],
 				)
 
 				if (this.configuration.linLogMode) {
@@ -698,7 +726,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								NodeMatrix[np(n1, 'mass')]
+								NodeMatrix[np(n1, NodeProp.mass)]
 						}
 					} else {
 						//-- LinLog Anti-collision Attraction
@@ -710,7 +738,7 @@ export class FA2Algorithm {
 					if (this.configuration.outboundAttractionDistribution) {
 						//-- Linear Degree Distributed Anti-collision Attraction
 						if (distance > 0) {
-							factor = (-coefficient * ewc) / NodeMatrix[np(n1, 'mass')]
+							factor = (-coefficient * ewc) / NodeMatrix[np(n1, NodeProp.mass)]
 						}
 					} else {
 						//-- Linear Anti-collision Attraction
@@ -729,7 +757,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								NodeMatrix[np(n1, 'mass')]
+								NodeMatrix[np(n1, NodeProp.mass)]
 						}
 					} else {
 						//-- LinLog Attraction
@@ -741,7 +769,7 @@ export class FA2Algorithm {
 						//-- Linear Attraction Mass Distributed
 						// NOTE: Distance is set to 1 to override next condition
 						distance = 1
-						factor = (-coefficient * ewc) / NodeMatrix[np(n1, 'mass')]
+						factor = (-coefficient * ewc) / NodeMatrix[np(n1, NodeProp.mass)]
 					} else {
 						//-- Linear Attraction
 						// NOTE: Distance is set to 1 to override next condition
@@ -755,11 +783,11 @@ export class FA2Algorithm {
 			// TODO: if condition or factor = 1?
 			if (distance > 0) {
 				// Updating nodes' dx and dy
-				NodeMatrix[np(n1, 'dx')] += xDist * factor
-				NodeMatrix[np(n1, 'dy')] += yDist * factor
+				NodeMatrix[np(n1, NodeProp.dx)] += xDist * factor
+				NodeMatrix[np(n1, NodeProp.dy)] += yDist * factor
 
-				NodeMatrix[np(n2, 'dx')] -= xDist * factor
-				NodeMatrix[np(n2, 'dy')] -= yDist * factor
+				NodeMatrix[np(n2, NodeProp.dx)] -= xDist * factor
+				NodeMatrix[np(n2, NodeProp.dy)] -= yDist * factor
 			}
 		}
 
@@ -770,89 +798,109 @@ export class FA2Algorithm {
 		// MATH: sqrt and square distances
 		if (this.configuration.adjustSizes) {
 			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!NodeMatrix[np(n, 'fixed')]) {
+				if (!NodeMatrix[np(n, NodeProp.fixed)]) {
 					force = Math.sqrt(
-						Math.pow(NodeMatrix[np(n, 'dx')], 2) +
-							Math.pow(NodeMatrix[np(n, 'dy')], 2),
+						Math.pow(NodeMatrix[np(n, NodeProp.dx)], 2) +
+							Math.pow(NodeMatrix[np(n, NodeProp.dy)], 2),
 					)
 
 					if (force > this.maxForce) {
-						NodeMatrix[np(n, 'dx')] =
-							(NodeMatrix[np(n, 'dx')] * this.maxForce) / force
-						NodeMatrix[np(n, 'dy')] =
-							(NodeMatrix[np(n, 'dy')] * this.maxForce) / force
+						NodeMatrix[np(n, NodeProp.dx)] =
+							(NodeMatrix[np(n, NodeProp.dx)] * this.maxForce) / force
+						NodeMatrix[np(n, NodeProp.dy)] =
+							(NodeMatrix[np(n, NodeProp.dy)] * this.maxForce) / force
 					}
 
 					swinging =
-						NodeMatrix[np(n, 'mass')] *
+						NodeMatrix[np(n, NodeProp.mass)] *
 						Math.sqrt(
-							(NodeMatrix[np(n, 'old_dx')] - NodeMatrix[np(n, 'dx')]) *
-								(NodeMatrix[np(n, 'old_dx')] - NodeMatrix[np(n, 'dx')]) +
-								(NodeMatrix[np(n, 'old_dy')] - NodeMatrix[np(n, 'dy')]) *
-									(NodeMatrix[np(n, 'old_dy')] - NodeMatrix[np(n, 'dy')]),
+							(NodeMatrix[np(n, NodeProp.old_dx)] -
+								NodeMatrix[np(n, NodeProp.dx)]) *
+								(NodeMatrix[np(n, NodeProp.old_dx)] -
+									NodeMatrix[np(n, NodeProp.dx)]) +
+								(NodeMatrix[np(n, NodeProp.old_dy)] -
+									NodeMatrix[np(n, NodeProp.dy)]) *
+									(NodeMatrix[np(n, NodeProp.old_dy)] -
+										NodeMatrix[np(n, NodeProp.dy)]),
 						)
 
 					traction =
 						Math.sqrt(
-							(NodeMatrix[np(n, 'old_dx')] + NodeMatrix[np(n, 'dx')]) *
-								(NodeMatrix[np(n, 'old_dx')] + NodeMatrix[np(n, 'dx')]) +
-								(NodeMatrix[np(n, 'old_dy')] + NodeMatrix[np(n, 'dy')]) *
-									(NodeMatrix[np(n, 'old_dy')] + NodeMatrix[np(n, 'dy')]),
+							(NodeMatrix[np(n, NodeProp.old_dx)] +
+								NodeMatrix[np(n, NodeProp.dx)]) *
+								(NodeMatrix[np(n, NodeProp.old_dx)] +
+									NodeMatrix[np(n, NodeProp.dx)]) +
+								(NodeMatrix[np(n, NodeProp.old_dy)] +
+									NodeMatrix[np(n, NodeProp.dy)]) *
+									(NodeMatrix[np(n, NodeProp.old_dy)] +
+										NodeMatrix[np(n, NodeProp.dy)]),
 						) / 2
 
 					nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
 
 					// Updating node's positon
-					NodeMatrix[np(n, 'x')] =
-						NodeMatrix[np(n, 'x')] +
-						NodeMatrix[np(n, 'dx')] * (nodespeed / this.configuration.slowDown)
-					NodeMatrix[np(n, 'y')] =
-						NodeMatrix[np(n, 'y')] +
-						NodeMatrix[np(n, 'dy')] * (nodespeed / this.configuration.slowDown)
+					NodeMatrix[np(n, NodeProp.x)] =
+						NodeMatrix[np(n, NodeProp.x)] +
+						NodeMatrix[np(n, NodeProp.dx)] *
+							(nodespeed / this.configuration.slowDown)
+					NodeMatrix[np(n, NodeProp.y)] =
+						NodeMatrix[np(n, NodeProp.y)] +
+						NodeMatrix[np(n, NodeProp.dy)] *
+							(nodespeed / this.configuration.slowDown)
 				}
 			}
 		} else {
 			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!NodeMatrix[np(n, 'fixed')]) {
+				if (!NodeMatrix[np(n, NodeProp.fixed)]) {
 					swinging =
-						NodeMatrix[np(n, 'mass')] *
+						NodeMatrix[np(n, NodeProp.mass)] *
 						Math.sqrt(
-							(NodeMatrix[np(n, 'old_dx')] - NodeMatrix[np(n, 'dx')]) *
-								(NodeMatrix[np(n, 'old_dx')] - NodeMatrix[np(n, 'dx')]) +
-								(NodeMatrix[np(n, 'old_dy')] - NodeMatrix[np(n, 'dy')]) *
-									(NodeMatrix[np(n, 'old_dy')] - NodeMatrix[np(n, 'dy')]),
+							(NodeMatrix[np(n, NodeProp.old_dx)] -
+								NodeMatrix[np(n, NodeProp.dx)]) *
+								(NodeMatrix[np(n, NodeProp.old_dx)] -
+									NodeMatrix[np(n, NodeProp.dx)]) +
+								(NodeMatrix[np(n, NodeProp.old_dy)] -
+									NodeMatrix[np(n, NodeProp.dy)]) *
+									(NodeMatrix[np(n, NodeProp.old_dy)] -
+										NodeMatrix[np(n, NodeProp.dy)]),
 						)
 
 					traction =
 						Math.sqrt(
-							(NodeMatrix[np(n, 'old_dx')] + NodeMatrix[np(n, 'dx')]) *
-								(NodeMatrix[np(n, 'old_dx')] + NodeMatrix[np(n, 'dx')]) +
-								(NodeMatrix[np(n, 'old_dy')] + NodeMatrix[np(n, 'dy')]) *
-									(NodeMatrix[np(n, 'old_dy')] + NodeMatrix[np(n, 'dy')]),
+							(NodeMatrix[np(n, NodeProp.old_dx)] +
+								NodeMatrix[np(n, NodeProp.dx)]) *
+								(NodeMatrix[np(n, NodeProp.old_dx)] +
+									NodeMatrix[np(n, NodeProp.dx)]) +
+								(NodeMatrix[np(n, NodeProp.old_dy)] +
+									NodeMatrix[np(n, NodeProp.dy)]) *
+									(NodeMatrix[np(n, NodeProp.old_dy)] +
+										NodeMatrix[np(n, NodeProp.dy)]),
 						) / 2
 
 					nodespeed =
-						(NodeMatrix[np(n, 'convergence')] * Math.log(1 + traction)) /
+						(NodeMatrix[np(n, NodeProp.convergence)] * Math.log(1 + traction)) /
 						(1 + Math.sqrt(swinging))
 
 					// Updating node convergence
-					NodeMatrix[np(n, 'convergence')] = Math.min(
+					NodeMatrix[np(n, NodeProp.convergence)] = Math.min(
 						1,
 						Math.sqrt(
 							(nodespeed *
-								(Math.pow(NodeMatrix[np(n, 'dx')], 2) +
-									Math.pow(NodeMatrix[np(n, 'dy')], 2))) /
+								(Math.pow(NodeMatrix[np(n, NodeProp.dx)], 2) +
+									Math.pow(NodeMatrix[np(n, NodeProp.dy)], 2))) /
 								(1 + Math.sqrt(swinging)),
 						),
 					)
 
 					// Updating node's positon
-					NodeMatrix[np(n, 'x')] =
-						NodeMatrix[np(n, 'x')] +
-						NodeMatrix[np(n, 'dx')] * (nodespeed / this.configuration.slowDown)
-					NodeMatrix[np(n, 'y')] =
-						NodeMatrix[np(n, 'y')] +
-						NodeMatrix[np(n, 'dy')] * (nodespeed / this.configuration.slowDown)
+					NodeMatrix[np(n, NodeProp.x)] =
+						NodeMatrix[np(n, NodeProp.x)] +
+						NodeMatrix[np(n, NodeProp.dx)] *
+							(nodespeed / this.configuration.slowDown)
+					NodeMatrix[np(n, NodeProp.y)] =
+						NodeMatrix[np(n, NodeProp.y)] +
+						NodeMatrix[np(n, NodeProp.dy)] *
+							(nodespeed / this.configuration.slowDown)
 				}
 			}
 		}
