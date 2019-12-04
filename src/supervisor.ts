@@ -1,5 +1,8 @@
-import { Rect } from './Rect';
-import workerScript from 'raw-loader!!../dist/fa2_worker.js'
+import { Rect } from "./Rect";
+import { ppe, ppn } from "./algorithm";
+// @ts-ignore
+import workerScript from "raw-loader!!../dist/fa2_worker.js";
+import { FA2Configuration, DEFAULT_CONFIGURATION } from "./configuration";
 
 /**
  * Sigma ForceAtlas2.5 Supervisor
@@ -14,31 +17,45 @@ import workerScript from 'raw-loader!!../dist/fa2_worker.js'
  * ------------------
  */
 export class Supervisor {
-  constructor(graph, config) {
-    const workerBlob = new Blob([workerScript], { type: 'text/javascript' })
-    this.worker = new Worker(window.URL.createObjectURL(workerBlob))
+  private graph: any;
+  private worker: Worker;
+  private running: boolean = false;
+  private started: boolean = false;
+  private _pending: boolean = false;
+  // TODO this doesn't appear to be used
+  private _needUpdate: boolean = false;
+  private _graphRect: Rect;
+  private config: FA2Configuration;
+  private nodesByteArray: Float32Array;
+  private edgesByteArray: Float32Array;
+
+  public constructor(graph, config: Partial<FA2Configuration>) {
+    this.graph = graph;
+    const workerBlob = new Blob([workerScript], { type: "text/javascript" });
+    this.worker = new Worker(window.URL.createObjectURL(workerBlob));
+    this.worker.addEventListener("message", this._onMessage.bind(this));
+    this._graphRect = new Rect(
+      Number.MAX_VALUE,
+      Number.MAX_VALUE,
+      Number.MIN_VALUE,
+      Number.MIN_VALUE
+    );
 
     // Create supervisor if undefined
-    this._init(graph, config);
-
-    // Configuration provided?
     this.configure(config);
 
-    this.run = this.start;
+    // Filling byteArrays
+    this._graphToByteArrays();
   }
 
-  configure(config) {
-    // Setting configuration
-    this.config = config;
-
+  public configure(config: Partial<FA2Configuration>) {
+    this.config = { ...DEFAULT_CONFIGURATION, ...config };
     if (!this.started) return;
-
     const data = { action: "config", config: this.config };
-
     this.worker.postMessage(data);
   }
 
-  start() {
+  public start() {
     if (this.running) return;
     this.running = true;
 
@@ -49,81 +66,46 @@ export class Supervisor {
     } else this._sendByteArrayToWorker();
   }
 
-  killWorker() {
-    if (this.worker) {
-      this.worker.terminate();
+  public step() {
+    if (this.isPending) {
+      return;
     }
-  }
-
-  step() {
-    if (this.isPending()) return;
     this.start();
     this.stop();
     return false;
   }
 
-  stop() {
-    if (!this.running) return;
+  public stop() {
+    if (!this.running) {
+      return;
+    }
     this.running = false;
   }
 
-  kill() {
-    if (!this.supervisor) return this;
-
-    // Stop Algorithm
-    this.supervisor.stop();
-
-    // Kill Worker
-    this.supervisor.killWorker();
-
-    // Kill supervisor
-    this.supervisor = null;
-
-    return this;
+  public kill() {
+    if (this.worker) {
+      this.worker.terminate();
+    }
   }
 
-  getGraphRect() {
-    return this.graphRect;
+  public get graphRect(): Rect {
+    return this._graphRect;
   }
 
-  isRunning() {
+  public get isRunning(): boolean {
     return this.running;
   }
 
-  isPending() {
+  public get isPending(): boolean {
     return this._pending;
   }
 
   forceUpdate() {
-    if (!this._pending) this._refreshNodesByteArray();
-    else this._needUpdate = true;
-  }
-
-  _init(graph, options) {
-    options = options || {};
-
-    // Properties
-    this.graph = graph;
-    this.ppn = 10;
-    this.ppe = 3;
-    this.config = {};
-
-    // State
-    this.started = false;
-    this.running = false;
-    this._pending = false;
-
-    // Worker message receiver
-    var listener = this._onMessage.bind(this);
-    this.worker.addEventListener('message', listener);
-    this.graphRect = new Rect(
-      Number.MAX_VALUE,
-      Number.MAX_VALUE,
-      Number.MIN_VALUE,
-      Number.MIN_VALUE
-    );
-    // Filling byteArrays
-    this._graphToByteArrays();
+    if (!this._pending) {
+      this._refreshNodesByteArray();
+    } else {
+      this._needUpdate = true;
+    }
   }
 
   _onMessage(e) {
@@ -143,8 +125,8 @@ export class Supervisor {
   _graphToByteArrays() {
     var nodes = this.graph.nodes,
       edges = this.graph.edges,
-      nbytes = nodes.length * this.ppn,
-      ebytes = edges.length * this.ppe,
+      nbytes = nodes.length * ppn,
+      ebytes = edges.length * ppe,
       nIndex = {},
       i,
       j,
@@ -157,7 +139,7 @@ export class Supervisor {
     // Iterate through nodes
     this._refreshNodesByteArray();
 
-    for (i = j = 0, l = nodes.length; i < l; i++, j += this.ppn)
+    for (i = j = 0, l = nodes.length; i < l; i++, j += ppn)
       // Populating index
       nIndex[nodes[i].id] = j;
 
@@ -166,7 +148,7 @@ export class Supervisor {
       this.edgesByteArray[j] = nIndex[edges[i].fromId];
       this.edgesByteArray[j + 1] = nIndex[edges[i].toId];
       this.edgesByteArray[j + 2] = edges[i].weight || 1;
-      j += this.ppe;
+      j += ppe;
     }
   }
 
@@ -195,7 +177,7 @@ export class Supervisor {
       this.nodesByteArray[j + 7] = 1;
       this.nodesByteArray[j + 8] = node.size || 0;
       this.nodesByteArray[j + 9] = node.isPinned;
-      j += this.ppn;
+      j += ppn;
 
       if (minX > x) minX = x;
       if (maxX < x) maxX = x;
@@ -203,7 +185,7 @@ export class Supervisor {
       if (maxY < y) maxY = y;
     }
 
-    this.graphRect = new Rect(minX, minY, maxX, maxY);
+    this._graphRect = new Rect(minX, minY, maxX, maxY);
   }
 
   _applyLayoutChanges() {
@@ -218,7 +200,7 @@ export class Supervisor {
       maxY = Number.MIN_VALUE;
 
     // Moving nodes
-    for (var i = 0, l = this.nodesByteArray.length; i < l; i += this.ppn) {
+    for (var i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
       if (!nodes[j].changed) {
         nodes[j].x = x = this.nodesByteArray[i];
         nodes[j].y = y = this.nodesByteArray[i + 1];
@@ -237,16 +219,16 @@ export class Supervisor {
       j++;
     }
 
-    this.graphRect = new Rect(minX, minY, maxX, maxY);
+    this._graphRect = new Rect(minX, minY, maxX, maxY);
   }
 
-  _sendByteArrayToWorker(action) {
-    var content = {
+  _sendByteArrayToWorker(action?: string) {
+    const content: Record<string, any> = {
       action: action || "loop",
       nodes: this.nodesByteArray.buffer
     };
 
-    var buffers = [this.nodesByteArray.buffer];
+    const buffers = [this.nodesByteArray.buffer];
 
     if (action === "start") {
       content.config = this.config || {};

@@ -1,21 +1,22 @@
-/**
- * Worker Script
- */
+import { FA2Algorithm } from "./algorithm";
 
- import { pass, configure, init, getNodes, setNodes, getConfiguration } from './algorithm'
+let algorithm: FA2Algorithm;
+
 /**
  * Message reception & sending
  */
 
 // Sending data back to the supervisor
 function sendNewCoords() {
-  const nodes = getNodes().buffer;
+  const nodes = algorithm.nodes.buffer;
   self.postMessage({ nodes }, [nodes]);
 }
 
 // Algorithm run
-function run(n) {
-  for (var i = 0; i < n; i++) pass();
+function run(iterations: number) {
+  for (let i = 0; i < iterations; i++) {
+    algorithm.pass();
+  }
   sendNewCoords();
 }
 
@@ -23,32 +24,28 @@ function run(n) {
 var listener = function(e) {
   switch (e.data.action) {
     case "start":
-      init(
+      algorithm = new FA2Algorithm(
         new Float32Array(e.data.nodes),
         new Float32Array(e.data.edges),
         e.data.config
       );
-
       // First iteration(s)
-      run(getConfiguration().startingIterations);
+      run(algorithm.configuration.startingIterations);
       break;
 
     case "loop":
-      setNodes(new Float32Array(e.data.nodes));
-      run(getConfiguration().iterationsPerRender);
+      algorithm.nodes = new Float32Array(e.data.nodes);
+      run(algorithm.configuration.iterationsPerRender);
       break;
 
     case "config":
       // Merging new settings
-      configure(e.data.config);
+      algorithm.configure(e.data.config);
       break;
 
     case "kill":
       // Deleting context for garbage collection
-      __emptyObject(W);
-      NodeMatrix = null;
-      EdgeMatrix = null;
-      RegionMatrix = null;
+      algorithm = undefined;
       self.removeEventListener("message", listener);
       break;
 

@@ -1,7 +1,19 @@
-import merge from "ngraph.merge";
 import { random } from "ngraph.random";
-import centrality from "ngraph.centrality";
+import * as centrality from "ngraph.centrality";
 import { Supervisor } from "./supervisor";
+import { Rect } from "./Rect";
+
+export interface UserSettings {
+  maxX: number;
+  maxY: number;
+  seed: string;
+}
+
+const DEFAULT_USER_SETTINGS: UserSettings = {
+  maxX: 1024,
+  maxY: 1024,
+  seed: "Deterministic randomness made me do this"
+};
 
 /**
  * Does not really perform any layouting algorithm but is compliant
@@ -12,12 +24,15 @@ import { Supervisor } from "./supervisor";
  * @param config
  * @param {Object} userSettings
  */
-export function forceAtlas2(graph, config, userSettings) {
-  userSettings = merge(userSettings, {
-    maxX: 1024,
-    maxY: 1024,
-    seed: "Deterministic randomness made me do this"
-  });
+export function forceAtlas2(
+  graph,
+  config,
+  userSettings: Partial<UserSettings> = {}
+) {
+  userSettings = {
+    ...DEFAULT_USER_SETTINGS,
+    ...userSettings
+  };
 
   const rand = random(userSettings.seed);
   const layoutLinks = {};
@@ -31,14 +46,16 @@ export function forceAtlas2(graph, config, userSettings) {
     };
   }
 
-  const layoutNodes =
-    typeof Object.create === "function" ? Object.create(null) : {};
+  const layoutNodes = Object.create(null);
   const layoutNodesArray = [];
   const layoutLinksArray = [];
 
   function initNode(node) {
-    var nodeBody = generateRandomPosition();
-    nodeBody.id = node.id;
+    const position = generateRandomPosition();
+    const nodeBody = {
+      ...position,
+      id: node.id
+    }
     layoutNodesArray.push(nodeBody);
     layoutNodes[node.id] = nodeBody;
   }
@@ -107,7 +124,7 @@ export function forceAtlas2(graph, config, userSettings) {
      * One step of layout algorithm
      */
     step() {
-      if (supervisor.isPending()) return;
+      if (supervisor.isPending) return;
       supervisor.step();
 
       return false;
@@ -117,19 +134,19 @@ export function forceAtlas2(graph, config, userSettings) {
      * Returns rectangle structure {x1, y1, x2, y2}, which represents
      * current space occupied by graph.
      */
-    getGraphRect() {
-      return supervisor.getGraphRect();
+    getGraphRect(): Rect {
+      return supervisor.graphRect;
     },
 
     /**
      * Request to release all resources
      */
-    dispose() {
+    dispose(): void {
       graph.off("change", onGraphChanged);
       supervisor.kill();
     },
 
-    isNodePinned(node) {
+    isNodePinned(node): boolean {
       return layoutNodes[node.id].isPinned;
     },
 
@@ -138,7 +155,7 @@ export function forceAtlas2(graph, config, userSettings) {
      * Pinned nodes should not be affected by layout algorithm and always
      * remain at their position
      */
-    pinNode(node, isPinned) {
+    pinNode(node, isPinned: boolean) {
       var body = layoutNodes[node.id];
       if (body.isPinned !== isPinned) {
         body.isPinned = isPinned;
