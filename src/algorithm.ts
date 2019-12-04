@@ -91,221 +91,12 @@ export class FA2Algorithm {
 
 	public pass() {
 		// MATH: get distances stuff and power 2 issues
-		var a, i, j, l, r, n, n1, n2, e, w, g, k, m
-
-		var outboundAttCompensation = this.outboundAttCompensation,
-			coefficient,
-			xDist,
-			yDist,
-			ewc,
-			mass,
-			distance,
-			size,
-			factor
-
 		this.resetDeltas()
 		this.prepareBarnesHutOptimization()
 		this.computeRepulsion()
 		this.computeGravity()
-
-		// 4) Attraction
-		//---------------
-		coefficient =
-			1 *
-			(this._config.outboundAttractionDistribution
-				? outboundAttCompensation
-				: 1)
-
-		// TODO: simplify distance
-		// TODO: coefficient is always used as -c --> optimize?
-		for (e = 0; e < this.edgesLength; e += ppe) {
-			n1 = this._edges[e + EP.source]
-			n2 = this._edges[e + EP.target]
-			w = this._edges[e + EP.weight]
-
-			// Edge weight influence
-			ewc = Math.pow(w, this._config.edgeWeightInfluence)
-
-			// Common measures
-			xDist = this._nodes[n1 + NP.x] - this._nodes[n2 + NP.x]
-			yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
-
-			// Applying attraction to nodes
-			if (this._config.adjustSizes) {
-				distance = Math.sqrt(
-					Math.pow(xDist, 2) +
-						Math.pow(yDist, 2) -
-						this._nodes[n1 + NP.size] -
-						this._nodes[n2 + NP.size],
-				)
-
-				if (this._config.linLogMode) {
-					if (this._config.outboundAttractionDistribution) {
-						//-- LinLog Degree Distributed Anti-collision Attraction
-						if (distance > 0) {
-							factor =
-								(-coefficient * ewc * Math.log(1 + distance)) /
-								distance /
-								this._nodes[n1 + NP.mass]
-						}
-					} else {
-						//-- LinLog Anti-collision Attraction
-						if (distance > 0) {
-							factor = (-coefficient * ewc * Math.log(1 + distance)) / distance
-						}
-					}
-				} else {
-					if (this._config.outboundAttractionDistribution) {
-						//-- Linear Degree Distributed Anti-collision Attraction
-						if (distance > 0) {
-							factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
-						}
-					} else {
-						//-- Linear Anti-collision Attraction
-						if (distance > 0) {
-							factor = -coefficient * ewc
-						}
-					}
-				}
-			} else {
-				distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
-
-				if (this._config.linLogMode) {
-					if (this._config.outboundAttractionDistribution) {
-						//-- LinLog Degree Distributed Attraction
-						if (distance > 0) {
-							factor =
-								(-coefficient * ewc * Math.log(1 + distance)) /
-								distance /
-								this._nodes[n1 + NP.mass]
-						}
-					} else {
-						//-- LinLog Attraction
-						if (distance > 0)
-							factor = (-coefficient * ewc * Math.log(1 + distance)) / distance
-					}
-				} else {
-					if (this._config.outboundAttractionDistribution) {
-						//-- Linear Attraction Mass Distributed
-						// NOTE: Distance is set to 1 to override next condition
-						distance = 1
-						factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
-					} else {
-						//-- Linear Attraction
-						// NOTE: Distance is set to 1 to override next condition
-						distance = 1
-						factor = -coefficient * ewc
-					}
-				}
-			}
-
-			// Updating nodes' dx and dy
-			// TODO: if condition or factor = 1?
-			if (distance > 0) {
-				// Updating nodes' dx and dy
-				this._nodes[n1 + NP.dx] += xDist * factor
-				this._nodes[n1 + NP.dy] += yDist * factor
-
-				this._nodes[n2 + NP.dx] -= xDist * factor
-				this._nodes[n2 + NP.dy] -= yDist * factor
-			}
-		}
-
-		// 5) Apply Forces
-		//-----------------
-		var force, swinging, traction, nodespeed
-
-		// MATH: sqrt and square distances
-		if (this._config.adjustSizes) {
-			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[n + NP.fixed]) {
-					force = Math.sqrt(
-						Math.pow(this._nodes[n + NP.dx], 2) +
-							Math.pow(this._nodes[n + NP.dy], 2),
-					)
-
-					if (force > this.maxForce) {
-						this._nodes[n + NP.dx] =
-							(this._nodes[n + NP.dx] * this.maxForce) / force
-						this._nodes[n + NP.dy] =
-							(this._nodes[n + NP.dy] * this.maxForce) / force
-					}
-
-					swinging =
-						this._nodes[n + NP.mass] *
-						Math.sqrt(
-							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
-								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
-								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
-									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
-						)
-
-					traction =
-						Math.sqrt(
-							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
-								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
-								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
-									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
-						) / 2
-
-					nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
-
-					// Updating node's positon
-					this._nodes[n + NP.x] =
-						this._nodes[n + NP.x] +
-						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
-					this._nodes[n + NP.y] =
-						this._nodes[n + NP.y] +
-						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
-				}
-			}
-		} else {
-			for (n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[n + NP.fixed]) {
-					swinging =
-						this._nodes[n + NP.mass] *
-						Math.sqrt(
-							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
-								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
-								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
-									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
-						)
-
-					traction =
-						Math.sqrt(
-							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
-								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
-								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
-									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
-						) / 2
-
-					nodespeed =
-						(this._nodes[n + NP.convergence] * Math.log(1 + traction)) /
-						(1 + Math.sqrt(swinging))
-
-					// Updating node convergence
-					this._nodes[n + NP.convergence] = Math.min(
-						1,
-						Math.sqrt(
-							(nodespeed *
-								(Math.pow(this._nodes[n + NP.dx], 2) +
-									Math.pow(this._nodes[n + NP.dy], 2))) /
-								(1 + Math.sqrt(swinging)),
-						),
-					)
-
-					// Updating node's positon
-					this._nodes[n + NP.x] =
-						this._nodes[n + NP.x] +
-						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
-					this._nodes[n + NP.y] =
-						this._nodes[n + NP.y] +
-						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
-				}
-			}
-		}
-
-		// Counting one more iteration
+		this.computeAttraction()
+		this.applyForces()
 		this._iterations++
 	}
 
@@ -801,5 +592,203 @@ export class FA2Algorithm {
 			}
 		}
 		return factor
+	}
+
+	private computeAttraction() {
+		const coefficient =
+			1 *
+			(this._config.outboundAttractionDistribution
+				? this.outboundAttCompensation
+				: 1)
+
+		// TODO: simplify distance
+		// TODO: coefficient is always used as -c --> optimize?
+		for (let e = 0; e < this.edgesLength; e += ppe) {
+			const n1 = this._edges[e + EP.source]
+			const n2 = this._edges[e + EP.target]
+			const w = this._edges[e + EP.weight]
+
+			// Edge weight influence
+			const ewc = Math.pow(w, this._config.edgeWeightInfluence)
+
+			// Common measures
+			const xDist = this._nodes[n1 + NP.x] - this._nodes[n2 + NP.x]
+			const yDist = this._nodes[n1 + NP.y] - this._nodes[n2 + NP.y]
+			let distance, factor
+
+			// Applying attraction to nodes
+			if (this._config.adjustSizes) {
+				distance = Math.sqrt(
+					Math.pow(xDist, 2) +
+						Math.pow(yDist, 2) -
+						this._nodes[n1 + NP.size] -
+						this._nodes[n2 + NP.size],
+				)
+
+				if (this._config.linLogMode) {
+					if (this._config.outboundAttractionDistribution) {
+						//-- LinLog Degree Distributed Anti-collision Attraction
+						if (distance > 0) {
+							factor =
+								(-coefficient * ewc * Math.log(1 + distance)) /
+								distance /
+								this._nodes[n1 + NP.mass]
+						}
+					} else {
+						//-- LinLog Anti-collision Attraction
+						if (distance > 0) {
+							factor = (-coefficient * ewc * Math.log(1 + distance)) / distance
+						}
+					}
+				} else {
+					if (this._config.outboundAttractionDistribution) {
+						//-- Linear Degree Distributed Anti-collision Attraction
+						if (distance > 0) {
+							factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
+						}
+					} else {
+						//-- Linear Anti-collision Attraction
+						if (distance > 0) {
+							factor = -coefficient * ewc
+						}
+					}
+				}
+			} else {
+				distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
+
+				if (this._config.linLogMode) {
+					if (this._config.outboundAttractionDistribution) {
+						//-- LinLog Degree Distributed Attraction
+						if (distance > 0) {
+							factor =
+								(-coefficient * ewc * Math.log(1 + distance)) /
+								distance /
+								this._nodes[n1 + NP.mass]
+						}
+					} else {
+						//-- LinLog Attraction
+						if (distance > 0)
+							factor = (-coefficient * ewc * Math.log(1 + distance)) / distance
+					}
+				} else {
+					if (this._config.outboundAttractionDistribution) {
+						//-- Linear Attraction Mass Distributed
+						// NOTE: Distance is set to 1 to override next condition
+						distance = 1
+						factor = (-coefficient * ewc) / this._nodes[n1 + NP.mass]
+					} else {
+						//-- Linear Attraction
+						// NOTE: Distance is set to 1 to override next condition
+						distance = 1
+						factor = -coefficient * ewc
+					}
+				}
+			}
+
+			// Updating nodes' dx and dy
+			// TODO: if condition or factor = 1?
+			if (distance > 0) {
+				// Updating nodes' dx and dy
+				this._nodes[n1 + NP.dx] += xDist * factor
+				this._nodes[n1 + NP.dy] += yDist * factor
+
+				this._nodes[n2 + NP.dx] -= xDist * factor
+				this._nodes[n2 + NP.dy] -= yDist * factor
+			}
+		}
+	}
+
+	private applyForces() {
+		let force, swinging, traction, nodespeed
+
+		// MATH: sqrt and square distances
+		if (this._config.adjustSizes) {
+			for (let n = 0; n < this.nodesLength; n += ppn) {
+				if (!this._nodes[n + NP.fixed]) {
+					force = Math.sqrt(
+						Math.pow(this._nodes[n + NP.dx], 2) +
+							Math.pow(this._nodes[n + NP.dy], 2),
+					)
+
+					if (force > this.maxForce) {
+						this._nodes[n + NP.dx] =
+							(this._nodes[n + NP.dx] * this.maxForce) / force
+						this._nodes[n + NP.dy] =
+							(this._nodes[n + NP.dy] * this.maxForce) / force
+					}
+
+					swinging =
+						this._nodes[n + NP.mass] *
+						Math.sqrt(
+							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
+						)
+
+					traction =
+						Math.sqrt(
+							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
+						) / 2
+
+					nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
+
+					// Updating node's positon
+					this._nodes[n + NP.x] =
+						this._nodes[n + NP.x] +
+						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
+					this._nodes[n + NP.y] =
+						this._nodes[n + NP.y] +
+						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
+				}
+			}
+		} else {
+			for (let n = 0; n < this.nodesLength; n += ppn) {
+				if (!this._nodes[n + NP.fixed]) {
+					swinging =
+						this._nodes[n + NP.mass] *
+						Math.sqrt(
+							(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] - this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] - this._nodes[n + NP.dy]),
+						)
+
+					traction =
+						Math.sqrt(
+							(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) *
+								(this._nodes[n + NP.old_dx] + this._nodes[n + NP.dx]) +
+								(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]) *
+									(this._nodes[n + NP.old_dy] + this._nodes[n + NP.dy]),
+						) / 2
+
+					nodespeed =
+						(this._nodes[n + NP.convergence] * Math.log(1 + traction)) /
+						(1 + Math.sqrt(swinging))
+
+					// Updating node convergence
+					this._nodes[n + NP.convergence] = Math.min(
+						1,
+						Math.sqrt(
+							(nodespeed *
+								(Math.pow(this._nodes[n + NP.dx], 2) +
+									Math.pow(this._nodes[n + NP.dy], 2))) /
+								(1 + Math.sqrt(swinging)),
+						),
+					)
+
+					// Updating node's positon
+					this._nodes[n + NP.x] =
+						this._nodes[n + NP.x] +
+						this._nodes[n + NP.dx] * (nodespeed / this._config.slowDown)
+					this._nodes[n + NP.y] =
+						this._nodes[n + NP.y] +
+						this._nodes[n + NP.dy] * (nodespeed / this._config.slowDown)
+				}
+			}
+		}
 	}
 }
