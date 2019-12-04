@@ -121,11 +121,13 @@ export class FA2Algorithm {
 			const [minX, maxX, minY, maxY] = this.getNodeBounds()
 
 			// Build the Barnes Hut root region
-			this._regions[R.node] = -1
-			this._regions[R.centerX] = (minX + maxX) / 2
-			this._regions[R.centerY] = (minY + maxY) / 2
-			this._regions[R.size] = Math.max(maxX - minX + maxY - minY)
-			this.clearRegion(0, -1)
+			this.initRegion(
+				0,
+				(minX + maxX) / 2,
+				(minY + maxY) / 2,
+				Math.max(maxX - minX + maxY - minY),
+				-1,
+			)
 
 			// Add each node in the tree
 			let l = 1
@@ -168,8 +170,7 @@ export class FA2Algorithm {
 
 						// Is there a node in this leaf?
 						if (this._regions[r + R.node] < 0) {
-							// There is no node in region:
-							// we record node n and go on
+							// There is no node in region;  we record node n and go on
 							this._regions[r + R.node] = n
 							break
 						} else {
@@ -189,39 +190,43 @@ export class FA2Algorithm {
 
 							// Top Left sub-region
 							let g = this._regions[r + R.firstChild]
-
-							this._regions[g + R.node] = -1
-							this._regions[g + R.centerX] = this._regions[r + R.centerX] - w
-							this._regions[g + R.centerY] = this._regions[r + R.centerY] - w
-							this._regions[g + R.size] = w
-							this.clearRegion(g, g + ppr)
+							this.initRegion(
+								g,
+								this._regions[r + R.centerX] - w,
+								this._regions[r + R.centerY] - w,
+								w,
+								g + ppr,
+							)
 
 							// Bottom Left sub-region
 							g += ppr
-							this._regions[g + R.node] = -1
-							this._regions[g + R.centerX] = this._regions[r + R.centerX] - w
-							this._regions[g + R.centerY] = this._regions[r + R.centerY] + w
-							this._regions[g + R.size] = w
-							this.clearRegion(g, g + ppr)
+							this.initRegion(
+								g,
+								this._regions[r + R.centerX] - w,
+								this._regions[r + R.centerY] + w,
+								w,
+								g + ppr,
+							)
 
 							// Top Right sub-region
 							g += ppr
-							this._regions[g + R.node] = -1
-							this._regions[g + R.centerX] = this._regions[r + R.centerX] + w
-							this._regions[g + R.centerY] = this._regions[r + R.centerY] - w
-							this._regions[g + R.size] = w
-							this.clearRegion(g, g + ppr)
+							this.initRegion(
+								g,
+								this._regions[r + R.centerX] + w,
+								this._regions[r + R.centerY] - w,
+								w,
+								g + ppr,
+							)
 
 							// Bottom Right sub-region
 							g += ppr
-							this._regions[g + R.node] = -1
-							this._regions[g + R.centerX] = this._regions[r + R.centerX] + w
-							this._regions[g + R.centerY] = this._regions[r + R.centerY] + w
-							this._regions[g + R.size] = w
-							this._regions[g + R.nextSibling] = this._regions[
-								r + R.nextSibling
-							]
-							this.clearRegion(g, r + R.nextSibling)
+							this.initRegion(
+								g,
+								this._regions[r + R.centerX] + w,
+								this._regions[r + R.centerY] + w,
+								w,
+								this._regions[r + R.nextSibling],
+							)
 
 							l += 4
 
@@ -528,8 +533,8 @@ export class FA2Algorithm {
 			// Applying attraction to nodes
 			if (this._config.adjustSizes) {
 				distance = Math.sqrt(
-					Math.pow(xDist, 2) +
-						Math.pow(yDist, 2) -
+					xDist ** 2 +
+						yDist ** 2 -
 						this._nodes[n1 + N.size] -
 						this._nodes[n2 + N.size],
 				)
@@ -563,7 +568,7 @@ export class FA2Algorithm {
 					}
 				}
 			} else {
-				distance = Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2))
+				distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 
 				if (this._config.linLogMode) {
 					if (this._config.outboundAttractionDistribution) {
@@ -615,8 +620,7 @@ export class FA2Algorithm {
 			for (let n = 0; n < this.nodesLength; n += ppn) {
 				if (!this._nodes[n + N.fixed]) {
 					force = Math.sqrt(
-						Math.pow(this._nodes[n + N.dx], 2) +
-							Math.pow(this._nodes[n + N.dy], 2),
+						this._nodes[n + N.dx] ** 2 + this._nodes[n + N.dy] ** 2,
 					)
 
 					if (force > this.maxForce) {
@@ -683,8 +687,7 @@ export class FA2Algorithm {
 						1,
 						Math.sqrt(
 							(nodespeed *
-								(Math.pow(this._nodes[n + N.dx], 2) +
-									Math.pow(this._nodes[n + N.dy], 2))) /
+								(this._nodes[n + N.dx] ** 2 + this._nodes[n + N.dy] ** 2)) /
 								(1 + Math.sqrt(swinging)),
 						),
 					)
@@ -772,11 +775,21 @@ export class FA2Algorithm {
 		return factor
 	}
 
-	private clearRegion(r: number, nextSibling: number) {
-		this._regions[r + R.nextSibling] = nextSibling
+	private initRegion(
+		r: number,
+		centerX: number,
+		centerY: number,
+		size: number,
+		nextSibling: number,
+	) {
+		this._regions[r + R.centerX] = centerX
+		this._regions[r + R.centerY] = centerY
+		this._regions[r + R.size] = size
+		this._regions[r + R.node] = -1
 		this._regions[r + R.firstChild] = -1
 		this._regions[r + R.mass] = 0
 		this._regions[r + R.massCenterX] = 0
 		this._regions[r + R.massCenterY] = 0
+		this._regions[r + R.nextSibling] = nextSibling
 	}
 }
