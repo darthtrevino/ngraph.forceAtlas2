@@ -11,8 +11,8 @@ export function init(communities, nodesCount, bridgeCount, force2) {
 	console.time('build graph')
 	let graph = createGraph()
 	console.log(`adding ${yeast.graph.nodes.length} nodes`)
-	yeast.graph.nodes.forEach(({ id, category }) => {
-		graph.addNode(id, { category })
+	yeast.graph.nodes.forEach(({ id, size, category }) => {
+		graph.addNode(id, { category, size })
 	})
 	console.log(`adding ${yeast.graph.edges.length} edges`)
 	yeast.graph.edges.forEach(({ source, target, weight }) => {
@@ -48,8 +48,8 @@ export function init(communities, nodesCount, bridgeCount, force2) {
 	const graphics = Graph.View.webglGraphics()
 	const squareNode = Graph.View.webglSquare
 
-	graphics.node(({ id, data: { category } }) =>
-		squareNode(15, colors[category]),
+	graphics.node(({ data: { size, category } }) =>
+		squareNode(size || DEFAULT_SIZE, colors[category]),
 	)
 
 	let renderer = Graph.View.renderer(graph, {
@@ -63,4 +63,4 @@ export function init(communities, nodesCount, bridgeCount, force2) {
 	return renderer
 }
 
-const NODE_ALPHA = 'FF'
+const DEFAULT_SIZE = 5

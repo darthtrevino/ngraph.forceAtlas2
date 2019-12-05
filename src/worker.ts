@@ -1,4 +1,5 @@
-import { FA2Algorithm } from './algorithm'
+import { FA2Algorithm } from './algorithm/FA2Algorithm'
+import { Nodes, Edges, FA2Configuration } from './algorithm'
 
 let algorithm: FA2Algorithm
 
@@ -9,7 +10,7 @@ let algorithm: FA2Algorithm
 // Sending data back to the supervisor
 function sendNewCoords() {
 	const nodes = algorithm.nodes.buffer
-	self.postMessage({ nodes }, [nodes])
+	self.postMessage({ nodes })
 }
 
 // Algorithm run
@@ -22,16 +23,27 @@ function run(iterations: number) {
 }
 
 // On supervisor message
-var listener = function(e) {
+function listener(e: {
+	data: {
+		action: string
+		edges?: SharedArrayBuffer
+		nodes?: SharedArrayBuffer
+		config?: FA2Configuration
+	}
+}) {
 	switch (e.data.action) {
 		case 'start':
-			algorithm = new FA2Algorithm(e.data.nodes, e.data.edges, e.data.config)
+			algorithm = new FA2Algorithm(
+				new Nodes(new Uint32Array(e.data.nodes)),
+				new Edges(new Uint32Array(e.data.edges)),
+				e.data.config,
+			)
 			// First iteration(s)
 			run(algorithm.configuration.startingIterations)
 			break
 
 		case 'loop':
-			algorithm.nodes = e.data.nodes
+			algorithm.nodes = new Uint32Array(e.data.nodes)
 			run(algorithm.configuration.iterationsPerRender)
 			break
 

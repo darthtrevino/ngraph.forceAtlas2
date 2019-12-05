@@ -1,8 +1,12 @@
 import { Rect } from './Rect'
-import { ppe, ppn } from './algorithm'
+import { ppe, E, Edges } from './algorithm/Edges'
+import { ppn, N, Nodes } from './algorithm/Nodes'
 // @ts-ignore
 import workerScript from 'raw-loader!!../dist/fa2_worker.js'
-import { FA2Configuration, DEFAULT_CONFIGURATION } from './configuration'
+import {
+	FA2Configuration,
+	DEFAULT_CONFIGURATION,
+} from './algorithm/configuration'
 
 /**
  * Sigma ForceAtlas2.5 Supervisor
@@ -26,8 +30,8 @@ export class Supervisor {
 	private _needUpdate: boolean = false
 	private _graphRect: Rect
 	private config: FA2Configuration
-	private nodesByteArray: Uint32Array
-	private edgesByteArray: Uint32Array
+	private nodes: Nodes
+	private edges: Edges
 
 	public constructor(graph, config: Partial<FA2Configuration>) {
 		this.graph = graph
@@ -126,20 +130,10 @@ export class Supervisor {
 		const ebytes = edges.length * ppe * 4
 		const nIndex: Record<string, number> = {}
 
-		const nodeBuffer = new SharedArrayBuffer(4 * nbytes)
-		const edgeBuffer = new SharedArrayBuffer(4 * ebytes)
-		const nodeArray = new Uint32Array(nodeBuffer)
-		const edgeArray = new Uint32Array(edgeBuffer)
-
-		for (let i = 0; i < nodes.length; ++i) {
-			Atomics.store(nodeArray, i, nodes[i] * 100)
-		}
-		for (let i = 0; i < nodes.length; ++i) {
-			Atomics.store(edgeArray, i, nodes[i] * 100)
-		}
-
-		this.nodesByteArray = nodeArray
-		this.edgesByteArray = edgeArray
+		const nodeArray = new Uint32Array(new SharedArrayBuffer(4 * nbytes))
+		const edgeArray = new Uint32Array(new SharedArrayBuffer(4 * ebytes))
+		this.nodes = new Nodes(nodeArray)
+		this.edges = new Edges(edgeArray)
 
 		// Iterate through nodes
 		this._refreshNodesByteArray()
@@ -151,9 +145,9 @@ export class Supervisor {
 
 		// Pack edge data
 		for (let i = 0, j = 0, l = edges.length; i < l; i++, j += ppe) {
-			this.edgesByteArray[j] = nIndex[edges[i].fromId]
-			this.edgesByteArray[j + 1] = nIndex[edges[i].toId]
-			this.edgesByteArray[j + 2] = (edges[i].weight || 1) * 100
+			this.edges.setSource(j, nIndex[edges[i].fromId])
+			this.edges.setTarget(j, nIndex[edges[i].toId])
+			this.edges.setWeight(j, edges[i].weight || 1)
 		}
 	}
 
@@ -164,21 +158,25 @@ export class Supervisor {
 			maxY = Number.MIN_VALUE,
 			nodes = this.graph.nodes,
 			x,
-			y
+			y,
+			node
 
 		for (let i = 0, j = 0, l = nodes.length; i < l; i++, j += ppn) {
-			var node = nodes[i]
+			node = nodes[i]
+			x = node.min
+			y = node.y
+
 			// Populating byte array
-			this.nodesByteArray[j] = x = node.x * 100
-			this.nodesByteArray[j + 1] = y = node.y * 100
-			this.nodesByteArray[j + 2] = 0
-			this.nodesByteArray[j + 3] = 0
-			this.nodesByteArray[j + 4] = 0
-			this.nodesByteArray[j + 5] = 0
-			this.nodesByteArray[j + 6] = 1 + this.graph.degree[node.id]
-			this.nodesByteArray[j + 7] = 1
-			this.nodesByteArray[j + 8] = (node.size || 0) * 100
-			this.nodesByteArray[j + 9] = node.isPinned
+			this.nodes.setX(j, node.x)
+			this.nodes.setY(j, node.y)
+			this.nodes.setDx(j, 0)
+			this.nodes.setDy(j, 0)
+			this.nodes.setOldDx(j, 0)
+			this.nodes.setOldDy(j, 0)
+			this.nodes.setMass(j, 1 + this.graph.degree[node.id])
+			this.nodes.setConvergence(j, 1)
+			this.nodes.setSize(j, node.size || 0)
+			this.nodes.setFixed(j, node.isPinned)
 
 			if (minX > x) minX = x
 			if (maxX < x) maxX = x
@@ -201,14 +199,18 @@ export class Supervisor {
 			maxY = Number.MIN_VALUE
 
 		// Moving nodes
-		for (var i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
+		for (var i = 0, l = this.nodes.length; i < l; i += ppn) {
 			if (!nodes[j].changed) {
-				nodes[j].x = x = this.nodesByteArray[i] * 100
-				nodes[j].y = y = this.nodesByteArray[i + 1] * 100
+				nodes[j].x = x = this.nodes.x(i)
+				nodes[j].y = y = this.nodes.y(i)
+				x = nodes[j].x
+				y = nodes[j].y
 			} else {
-				this.nodesByteArray[i] = x = nodes[j].x * 100
-				this.nodesByteArray[i + 1] = y = nodes[j].y * 100
-				this.nodesByteArray[i + 9] = nodes[j].isPinned
+				x = nodes[j].x
+				y = nodes[j].y
+				this.nodes.setX(i, nodes[j].x)
+				this.nodes.setY(i, nodes[j].y)
+				this.nodes.setFixed(i, nodes[j].isPinned)
 				nodes[j].changed = false
 			}
 
@@ -226,12 +228,12 @@ export class Supervisor {
 	_sendByteArrayToWorker(action?: string) {
 		const content: Record<string, any> = {
 			action: action || 'loop',
-			nodes: this.nodesByteArray.buffer,
+			nodes: this.nodes.array.buffer,
 		}
 
 		if (action === 'start') {
 			content.config = this.config || {}
-			content.edges = this.edgesByteArray.buffer
+			content.edges = this.edges.array.buffer
 		}
 
 		this.worker.postMessage(content)

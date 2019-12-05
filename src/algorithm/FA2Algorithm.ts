@@ -1,48 +1,25 @@
 import { DEFAULT_CONFIGURATION, FA2Configuration } from './configuration'
 import { Nodes, ppn } from './Nodes'
+import { Edges, ppe } from './Edges'
+import { Regions, ppr } from './Regions'
 
-export const ppe = 3
-export const ppr = 9
 const MAX_FORCE = 10
-
-export enum E {
-	source = 0,
-	target = 1,
-	weight = 2,
-}
-
-export enum R {
-	node = 0,
-	centerX = 1,
-	centerY = 2,
-	size = 3,
-	nextSibling = 4,
-	firstChild = 5,
-	mass = 6,
-	massCenterX = 7,
-	massCenterY = 8,
-}
 
 export class FA2Algorithm {
 	private _config: FA2Configuration
 	private _iterations = 0
 	private _converged = false
-	private _edges: Uint32Array
-	private _nodes: Nodes
-	private _regions: number[] = []
+	private _regions: Regions
 
 	private _scaledGravity: number
 
 	public constructor(
-		// SharedArrayBuffer-backed
-		nodes: Uint32Array,
-		// SharedArrayBuffer-backed
-		edges: Uint32Array,
+		private _nodes: Nodes,
+		private _edges: Edges,
 		config: Partial<FA2Configuration>,
 	) {
 		this.configure(config)
-		this._nodes = new Nodes(nodes)
-		this._edges = edges
+		this._regions = new Regions()
 	}
 
 	public configure(config: Partial<FA2Configuration>) {
@@ -104,7 +81,7 @@ export class FA2Algorithm {
 		// 1.bis) Barnes-Hut computation
 		//------------------------------
 		if (this._config.barnesHutOptimize) {
-			this._regions = new Array((this.nodesLength / ppn) * 4 * ppr)
+			this._regions.array = new Array((this.nodesLength / ppn) * 4 * ppr)
 
 			// Setting up
 			// Computing min and max values
@@ -129,7 +106,7 @@ export class FA2Algorithm {
 					// Are there sub-regions?
 
 					// We look at first child index
-					if (this._regions[r + R.firstChild] >= 0) {
+					if (this._regions.firstChild(r) >= 0) {
 						// There are sub-regions
 
 						// We just iterate to find a leaf of the tree
@@ -140,17 +117,21 @@ export class FA2Algorithm {
 						const q = this.getQuadrantOfNodeInRegion(n, r)
 
 						// Update center of mass and mass (we only do it for non-leaf regions)
-						this._regions[r + R.massCenterX] =
-							(this._regions[r + R.massCenterX] * this._regions[r + R.mass] +
+						this._regions.setMassCenterX(
+							r,
+							(this._regions.massCenterX(0) * this._regions.mass(r) +
 								this._nodes.x(n) * this._nodes.mass(n)) /
-							(this._regions[r + R.mass] + this._nodes.mass(n))
+								(this._regions.mass(r) + this._nodes.mass(n)),
+						)
 
-						this._regions[r + R.massCenterY] =
-							(this._regions[r + R.massCenterY] * this._regions[r + R.mass] +
+						this._regions.setMassCenterY(
+							r,
+							(this._regions.massCenterY(r) * this._regions.mass(r) +
 								this._nodes.y(n) * this._nodes.mass(n)) /
-							(this._regions[r + R.mass] + this._nodes.mass(n))
+								(this._regions.mass(r) + this._nodes.mass(n)),
+						)
 
-						this._regions[r + R.mass] += this._nodes.mass(n)
+						this._regions.addMass(r, this._nodes.mass(n))
 
 						// Iterate on the correct quadrant
 						r = q
@@ -159,9 +140,9 @@ export class FA2Algorithm {
 						// There are no sub-regions: we are in a leaf
 
 						// Is there a node in this leaf?
-						if (this._regions[r + R.node] < 0) {
+						if (this._regions.node(r) < 0) {
 							// There is no node in region;  we record node n and go on
-							this._regions[r + R.node] = n
+							this._regions.setNode(r, n)
 							break
 						} else {
 							// There is a node in this region
@@ -172,18 +153,18 @@ export class FA2Algorithm {
 							// we will iterate.
 
 							// Create sub-regions
-							this._regions[r + R.firstChild] = l * ppr
-							let w = this._regions[r + R.size] / 2 // new size (half)
+							this._regions.setFirstChild(r, l * ppr)
+							let w = this._regions.size(r) / 2 // new size (half)
 
 							// NOTE: we use screen coordinates
 							// from Top Left to Bottom Right
 
 							// Top Left sub-region
-							let g = this._regions[r + R.firstChild]
+							let g = this._regions.firstChild(r)
 							this.initRegion(
 								g,
-								this._regions[r + R.centerX] - w,
-								this._regions[r + R.centerY] - w,
+								this._regions.centerX(r) - w,
+								this._regions.centerY(r) - w,
 								w,
 								g + ppr,
 							)
@@ -192,8 +173,8 @@ export class FA2Algorithm {
 							g += ppr
 							this.initRegion(
 								g,
-								this._regions[r + R.centerX] - w,
-								this._regions[r + R.centerY] + w,
+								this._regions.centerX(r) - w,
+								this._regions.centerY(r) + w,
 								w,
 								g + ppr,
 							)
@@ -202,8 +183,8 @@ export class FA2Algorithm {
 							g += ppr
 							this.initRegion(
 								g,
-								this._regions[r + R.centerX] + w,
-								this._regions[r + R.centerY] - w,
+								this._regions.centerX(r) + w,
+								this._regions.centerY(r) - w,
 								w,
 								g + ppr,
 							)
@@ -212,10 +193,10 @@ export class FA2Algorithm {
 							g += ppr
 							this.initRegion(
 								g,
-								this._regions[r + R.centerX] + w,
-								this._regions[r + R.centerY] + w,
+								this._regions.centerX(r) + w,
+								this._regions.centerY(r) + w,
 								w,
-								this._regions[r + R.nextSibling],
+								this._regions.nextSibling(r),
 							)
 
 							l += 4
@@ -225,23 +206,20 @@ export class FA2Algorithm {
 							// and the one we want to add (n)
 
 							// Find the quadrant of the old node
-							const q = this.getQuadrantOfNodeInRegion(
-								this._regions[r + R.node],
-								r,
-							)
+							const q = this.getQuadrantOfNodeInRegion(this._regions.node(r), r)
 
 							// We remove r[0] from the region r, add its mass to r and record it in q
-							this._regions[r + R.mass] = this._nodes.mass(
-								this._regions[r + R.node],
+							this._regions.addMass(r, this._nodes.mass(this._regions.node(r)))
+							this._regions.setMassCenterX(
+								r,
+								this._nodes.x(this._regions.node(r)),
 							)
-							this._regions[r + R.massCenterX] = this._nodes.x(
-								this._regions[r + R.node],
+							this._regions.setMassCenterY(
+								r,
+								this._nodes.y(this._regions.node(r)),
 							)
-							this._regions[r + R.massCenterY] = this._nodes.y(
-								this._regions[r + R.node],
-							)
-							this._regions[q + R.node] = this._regions[r + R.node]
-							this._regions[r + R.node] = -1
+							this._regions.setNode(q, this._regions.node(r))
+							this._regions.setNode(r, -1)
 
 							// Find the quadrant of n
 							const q2 = this.getQuadrantOfNodeInRegion(n, r)
@@ -255,7 +233,7 @@ export class FA2Algorithm {
 
 							// If both quadrants are different, we record n
 							// in its quadrant
-							this._regions[q + R.node] = n
+							this._regions.setNode(q, n)
 							break
 						}
 					}
@@ -278,25 +256,25 @@ export class FA2Algorithm {
 
 				let r = 0 // Starting with root region
 				while (true) {
-					if (this._regions[r + R.firstChild] >= 0) {
+					if (this._regions.firstChild(r) >= 0) {
 						let factor
 						// The region has sub-regions
 
 						// We run the Barnes Hut test to see if we are at the right distance
 						let distance = Math.sqrt(
 							this._nodes.x(n) -
-								this._regions[r + R.massCenterX] ** 2 +
+								this._regions.massCenterX(r) ** 2 +
 								this._nodes.y(n) -
-								this._regions[r + R.massCenterY] ** 2,
+								this._regions.massCenterY(r) ** 2,
 						)
 
 						if (
-							(2 * this._regions[r + R.size]) / distance <
+							(2 * this._regions.size(r)) / distance <
 							this._config.barnesHutTheta
 						) {
 							// We treat the region as a single body, and we repulse
-							let xDist = this._nodes.x(n) - this._regions[r + R.massCenterX]
-							let yDist = this._nodes.y(n) - this._regions[r + R.massCenterY]
+							let xDist = this._nodes.x(n) - this._regions.massCenterX(r)
+							let yDist = this._nodes.y(n) - this._regions.massCenterY(r)
 
 							if (this._config.adjustSize) {
 								//-- Linear Anti-collision Repulsion
@@ -304,9 +282,8 @@ export class FA2Algorithm {
 									factor =
 										(coefficient *
 											this._nodes.mass(n) *
-											this._regions[r + R.mass]) /
-										distance /
-										distance
+											this._regions.mass(r)) /
+										distance ** 2
 
 									this._nodes.addDx(n, xDist * factor)
 									this._nodes.addDy(n, yDist * factor)
@@ -314,7 +291,7 @@ export class FA2Algorithm {
 									factor =
 										(-coefficient *
 											this._nodes.mass(n) *
-											this._regions[r + R.mass]) /
+											this._regions.mass(r)) /
 										distance
 
 									this._nodes.addDx(n, xDist * factor)
@@ -326,9 +303,8 @@ export class FA2Algorithm {
 									factor =
 										(coefficient *
 											this._nodes.mass(n) *
-											this._regions[r + R.mass]) /
-										distance /
-										distance
+											this._regions.mass(r)) /
+										distance ** 2
 
 									this._nodes.addDx(n, xDist * factor)
 									this._nodes.addDy(n, yDist * factor)
@@ -336,12 +312,12 @@ export class FA2Algorithm {
 							}
 
 							// When this is done, we iterate. We have to look at the next sibling.
-							if (this._regions[r + R.nextSibling] < 0) break // No next sibling: we have finished the tree
-							r = this._regions[r + R.nextSibling]
+							if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
+							r = this._regions.nextSibling(r)
 							continue
 						} else {
 							// The region is too close and we have to look at sub-regions
-							r = this._regions[r + R.firstChild]
+							r = this._regions.firstChild(r)
 							continue
 						}
 					} else {
@@ -352,14 +328,9 @@ export class FA2Algorithm {
 						// The region has no sub-region
 						// If there is a node r[0] and it is not n, then repulse
 
-						if (
-							this._regions[r + R.node] >= 0 &&
-							this._regions[r + R.node] !== n
-						) {
-							xDist =
-								this._nodes.x(n) - this._nodes.x(this._regions[r + R.node])
-							yDist =
-								this._nodes.y(n) - this._nodes.y(this._regions[r + R.node])
+						if (this._regions.node(r) >= 0 && this._regions.node(r) !== n) {
+							xDist = this._nodes.x(n) - this._nodes.x(this._regions.node(r))
+							yDist = this._nodes.y(n) - this._nodes.y(this._regions.node(r))
 
 							distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 
@@ -369,7 +340,7 @@ export class FA2Algorithm {
 									factor =
 										(coefficient *
 											this._nodes.mass(n) *
-											this._nodes.mass(this._regions[r + R.node])) /
+											this._nodes.mass(this._regions.node(r))) /
 										distance ** 2
 
 									this._nodes.addDy(n, xDist * factor)
@@ -378,7 +349,7 @@ export class FA2Algorithm {
 									factor =
 										(-coefficient *
 											this._nodes.mass(n) *
-											this._nodes.mass(this._regions[r + R.node])) /
+											this._nodes.mass(this._regions.node(r))) /
 										distance
 
 									this._nodes.addDx(n, xDist * factor)
@@ -390,9 +361,8 @@ export class FA2Algorithm {
 									factor =
 										(coefficient *
 											this._nodes.mass(n) *
-											this._nodes.mass(this._regions[r + R.node])) /
-										distance /
-										distance
+											this._nodes.mass(this._regions.node(r))) /
+										distance ** 2
 
 									this._nodes.addDx(n, xDist * factor)
 									this._nodes.addDy(n, yDist * factor)
@@ -401,8 +371,8 @@ export class FA2Algorithm {
 						}
 
 						// When this is done, we iterate. We have to look at the next sibling.
-						if (this._regions[r + R.nextSibling] < 0) break // No next sibling: we have finished the tree
-						r = this._regions[r + R.nextSibling]
+						if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
+						r = this._regions.nextSibling(r)
 						continue
 					}
 				}
@@ -492,9 +462,9 @@ export class FA2Algorithm {
 		// TODO: simplify distance
 		// TODO: coefficient is always used as -c --> optimize?
 		for (let e = 0; e < this.edgesLength; e += ppe) {
-			const n1 = this._edges[e + E.source]
-			const n2 = this._edges[e + E.target]
-			const w = this._edges[e + E.weight]
+			const n1 = this._edges.source(e)
+			const n2 = this._edges.target(e)
+			const w = this._edges.weight(e)
 
 			// Edge weight influence
 			const ewc = Math.pow(w, this._config.edgeWeightInfluence)
@@ -708,21 +678,21 @@ export class FA2Algorithm {
 
 	private getQuadrantOfNodeInRegion(n: number, r: number): number {
 		// Find the quadrant of n
-		if (this._nodes.x(n) < this._regions[r + R.centerX]) {
-			if (this._nodes.y(n) < this._regions[r + R.centerY]) {
+		if (this._nodes.x(n) < this._regions.centerX(r)) {
+			if (this._nodes.y(n) < this._regions.centerY(r)) {
 				// Top Left quarter
-				return this._regions[r + R.firstChild]
+				return this._regions.firstChild(r)
 			} else {
 				// Bottom Left quarter
-				return this._regions[r + R.firstChild] + ppr
+				return this._regions.firstChild(r) + ppr
 			}
 		} else {
-			if (this._nodes.y(n) < this._regions[r + R.centerY]) {
+			if (this._nodes.y(n) < this._regions.centerY(r)) {
 				// Top Right quarter
-				return this._regions[r + R.firstChild] + ppr * 2
+				return this._regions.firstChild(r) + ppr * 2
 			} else {
 				// Bottom Right quarter
-				return this._regions[r + R.firstChild] + ppr * 3
+				return this._regions.firstChild(r) + ppr * 3
 			}
 		}
 	}
@@ -753,14 +723,14 @@ export class FA2Algorithm {
 		size: number,
 		nextSibling: number,
 	) {
-		this._regions[r + R.nextSibling] = nextSibling
-		this._regions[r + R.centerX] = centerX
-		this._regions[r + R.centerY] = centerY
-		this._regions[r + R.size] = size
-		this._regions[r + R.node] = -1
-		this._regions[r + R.firstChild] = -1
-		this._regions[r + R.mass] = 0
-		this._regions[r + R.massCenterX] = 0
-		this._regions[r + R.massCenterY] = 0
+		this._regions.setNextSibling(r, nextSibling)
+		this._regions.setCenterX(r, centerX)
+		this._regions.setCenterY(r, centerY)
+		this._regions.setSize(r, size)
+		this._regions.setNode(r, -1)
+		this._regions.setFirstChild(r, -1)
+		this._regions.setMassCenterY(r, 0)
+		this._regions.setMassCenterX(r, 0)
+		this._regions.setMassCenterY(r, 0)
 	}
 }
