@@ -26,8 +26,8 @@ export class Supervisor {
 	private _needUpdate: boolean = false
 	private _graphRect: Rect
 	private config: FA2Configuration
-	private nodesByteArray: Float32Array
-	private edgesByteArray: Float32Array
+	private nodesByteArray: Uint32Array
+	private edgesByteArray: Uint32Array
 
 	public constructor(graph, config: Partial<FA2Configuration>) {
 		this.graph = graph
@@ -110,8 +110,6 @@ export class Supervisor {
 
 	_onMessage(e) {
 		// Retrieving data
-		this.nodesByteArray = new Float32Array(e.data.nodes)
-
 		this._applyLayoutChanges()
 
 		this._pending = false
@@ -123,61 +121,64 @@ export class Supervisor {
 	}
 
 	_graphToByteArrays() {
-		var nodes = this.graph.nodes,
-			edges = this.graph.edges,
-			nbytes = nodes.length * ppn,
-			ebytes = edges.length * ppe,
-			nIndex = {},
-			i,
-			j,
-			l
+		const { nodes, edges } = this.graph
+		const nbytes = nodes.length * ppn * 4
+		const ebytes = edges.length * ppe * 4
+		const nIndex: Record<string, number> = {}
 
-		// Allocating Byte arrays with correct nb of bytes
-		this.nodesByteArray = new Float32Array(nbytes)
-		this.edgesByteArray = new Float32Array(ebytes)
+		const nodeBuffer = new SharedArrayBuffer(4 * nbytes)
+		const edgeBuffer = new SharedArrayBuffer(4 * ebytes)
+		const nodeArray = new Uint32Array(nodeBuffer)
+		const edgeArray = new Uint32Array(edgeBuffer)
+
+		for (let i = 0; i < nodes.length; ++i) {
+			Atomics.store(nodeArray, i, nodes[i] * 100)
+		}
+		for (let i = 0; i < nodes.length; ++i) {
+			Atomics.store(edgeArray, i, nodes[i] * 100)
+		}
+
+		this.nodesByteArray = nodeArray
+		this.edgesByteArray = edgeArray
 
 		// Iterate through nodes
 		this._refreshNodesByteArray()
 
-		for (i = j = 0, l = nodes.length; i < l; i++, j += ppn)
-			// Populating index
+		// Populating Node id->index map
+		for (let i = 0, j = 0, l = nodes.length; i < l; i++, j += ppn) {
 			nIndex[nodes[i].id] = j
+		}
 
-		// Iterate through edges
-		for (i = j = 0, l = edges.length; i < l; i++) {
+		// Pack edge data
+		for (let i = 0, j = 0, l = edges.length; i < l; i++, j += ppe) {
 			this.edgesByteArray[j] = nIndex[edges[i].fromId]
 			this.edgesByteArray[j + 1] = nIndex[edges[i].toId]
-			this.edgesByteArray[j + 2] = edges[i].weight || 1
-			j += ppe
+			this.edgesByteArray[j + 2] = (edges[i].weight || 1) * 100
 		}
 	}
 
 	_refreshNodesByteArray() {
-		var minX = Number.MAX_VALUE,
+		let minX = Number.MAX_VALUE,
 			maxX = Number.MIN_VALUE,
 			minY = Number.MAX_VALUE,
 			maxY = Number.MIN_VALUE,
 			nodes = this.graph.nodes,
 			x,
-			y,
-			i,
-			l,
-			j
+			y
 
-		for (i = j = 0, l = nodes.length; i < l; i++) {
+		for (let i = 0, j = 0, l = nodes.length; i < l; i++, j += ppn) {
 			var node = nodes[i]
 			// Populating byte array
-			this.nodesByteArray[j] = x = node.x
-			this.nodesByteArray[j + 1] = y = node.y
+			this.nodesByteArray[j] = x = node.x * 100
+			this.nodesByteArray[j + 1] = y = node.y * 100
 			this.nodesByteArray[j + 2] = 0
 			this.nodesByteArray[j + 3] = 0
 			this.nodesByteArray[j + 4] = 0
 			this.nodesByteArray[j + 5] = 0
 			this.nodesByteArray[j + 6] = 1 + this.graph.degree[node.id]
 			this.nodesByteArray[j + 7] = 1
-			this.nodesByteArray[j + 8] = node.size || 0
+			this.nodesByteArray[j + 8] = (node.size || 0) * 100
 			this.nodesByteArray[j + 9] = node.isPinned
-			j += ppn
 
 			if (minX > x) minX = x
 			if (maxX < x) maxX = x
@@ -202,11 +203,11 @@ export class Supervisor {
 		// Moving nodes
 		for (var i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
 			if (!nodes[j].changed) {
-				nodes[j].x = x = this.nodesByteArray[i]
-				nodes[j].y = y = this.nodesByteArray[i + 1]
+				nodes[j].x = x = this.nodesByteArray[i] * 100
+				nodes[j].y = y = this.nodesByteArray[i + 1] * 100
 			} else {
-				this.nodesByteArray[i] = x = nodes[j].x
-				this.nodesByteArray[i + 1] = y = nodes[j].y
+				this.nodesByteArray[i] = x = nodes[j].x * 100
+				this.nodesByteArray[i + 1] = y = nodes[j].y * 100
 				this.nodesByteArray[i + 9] = nodes[j].isPinned
 				nodes[j].changed = false
 			}
@@ -228,15 +229,12 @@ export class Supervisor {
 			nodes: this.nodesByteArray.buffer,
 		}
 
-		const buffers = [this.nodesByteArray.buffer]
-
 		if (action === 'start') {
 			content.config = this.config || {}
 			content.edges = this.edgesByteArray.buffer
-			buffers.push(this.edgesByteArray.buffer)
 		}
 
-		this.worker.postMessage(content, buffers)
+		this.worker.postMessage(content)
 		this._pending = true
 	}
 }

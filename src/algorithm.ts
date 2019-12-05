@@ -1,22 +1,9 @@
 import { DEFAULT_CONFIGURATION, FA2Configuration } from './configuration'
+import { Nodes, ppn } from './Nodes'
 
-export const ppn = 10
 export const ppe = 3
 export const ppr = 9
 const MAX_FORCE = 10
-
-export enum N {
-	x = 0,
-	y = 1,
-	dx = 2,
-	dy = 3,
-	old_dx = 4,
-	old_dy = 5,
-	mass = 6,
-	convergence = 7,
-	size = 8,
-	fixed = 9,
-}
 
 export enum E {
 	source = 0,
@@ -40,19 +27,21 @@ export class FA2Algorithm {
 	private _config: FA2Configuration
 	private _iterations = 0
 	private _converged = false
-	private _nodes: Float32Array
-	private _edges: Float32Array
+	private _edges: Uint32Array
+	private _nodes: Nodes
 	private _regions: number[] = []
 
 	private _scaledGravity: number
 
 	public constructor(
-		nodes: Float32Array,
-		edges: Float32Array,
+		// SharedArrayBuffer-backed
+		nodes: Uint32Array,
+		// SharedArrayBuffer-backed
+		edges: Uint32Array,
 		config: Partial<FA2Configuration>,
 	) {
 		this.configure(config)
-		this._nodes = nodes
+		this._nodes = new Nodes(nodes)
 		this._edges = edges
 	}
 
@@ -77,19 +66,20 @@ export class FA2Algorithm {
 		return this._edges.length
 	}
 
-	public set nodes(value: Float32Array) {
-		this._nodes = value
+	public set nodes(value: Uint32Array) {
+		this._nodes.array = value
 	}
 
-	public get nodes(): Float32Array {
-		return this._nodes
+	public get nodes(): Uint32Array {
+		return this._nodes.array
 	}
 
 	public get iterations(): number {
 		return this._iterations
 	}
 
-	public pass() {
+	public tick() {
+		console.log('tick')
 		// MATH: get distances stuff and power 2 issues
 		this.resetDeltas()
 		this.prepareBarnesHutOptimization()
@@ -103,10 +93,10 @@ export class FA2Algorithm {
 	private resetDeltas(): void {
 		// Resetting positions & computing max values
 		for (let n = 0; n < this.nodesLength; n += ppn) {
-			this._nodes[n + N.old_dx] = this._nodes[n + N.dx]
-			this._nodes[n + N.old_dy] = this._nodes[n + N.dy]
-			this._nodes[n + N.dx] = 0
-			this._nodes[n + N.dy] = 0
+			this._nodes.setOldDx(n, this._nodes.dx(n))
+			this._nodes.setOldDy(n, this._nodes.dy(n))
+			this._nodes.setDx(n, 0)
+			this._nodes.setDy(n, 0)
 		}
 	}
 
@@ -152,15 +142,15 @@ export class FA2Algorithm {
 						// Update center of mass and mass (we only do it for non-leaf regions)
 						this._regions[r + R.massCenterX] =
 							(this._regions[r + R.massCenterX] * this._regions[r + R.mass] +
-								this._nodes[n + N.x] * this._nodes[n + N.mass]) /
-							(this._regions[r + R.mass] + this._nodes[n + N.mass])
+								this._nodes.x(n) * this._nodes.mass(n)) /
+							(this._regions[r + R.mass] + this._nodes.mass(n))
 
 						this._regions[r + R.massCenterY] =
 							(this._regions[r + R.massCenterY] * this._regions[r + R.mass] +
-								this._nodes[n + N.y] * this._nodes[n + N.mass]) /
-							(this._regions[r + R.mass] + this._nodes[n + N.mass])
+								this._nodes.y(n) * this._nodes.mass(n)) /
+							(this._regions[r + R.mass] + this._nodes.mass(n))
 
-						this._regions[r + R.mass] += this._nodes[n + N.mass]
+						this._regions[r + R.mass] += this._nodes.mass(n)
 
 						// Iterate on the correct quadrant
 						r = q
@@ -241,16 +231,15 @@ export class FA2Algorithm {
 							)
 
 							// We remove r[0] from the region r, add its mass to r and record it in q
-							this._regions[r + R.mass] = this._nodes[
-								this._regions[r + R.node] + N.mass
-							]
-							this._regions[r + R.massCenterX] = this._nodes[
-								this._regions[r + R.node] + N.x
-							]
-							this._regions[r + R.massCenterY] = this._nodes[
-								this._regions[r + R.node] + N.y
-							]
-
+							this._regions[r + R.mass] = this._nodes.mass(
+								this._regions[r + R.node],
+							)
+							this._regions[r + R.massCenterX] = this._nodes.x(
+								this._regions[r + R.node],
+							)
+							this._regions[r + R.massCenterY] = this._nodes.y(
+								this._regions[r + R.node],
+							)
 							this._regions[q + R.node] = this._regions[r + R.node]
 							this._regions[r + R.node] = -1
 
@@ -295,9 +284,9 @@ export class FA2Algorithm {
 
 						// We run the Barnes Hut test to see if we are at the right distance
 						let distance = Math.sqrt(
-							this._nodes[n + N.x] -
+							this._nodes.x(n) -
 								this._regions[r + R.massCenterX] ** 2 +
-								this._nodes[n + N.y] -
+								this._nodes.y(n) -
 								this._regions[r + R.massCenterY] ** 2,
 						)
 
@@ -306,45 +295,43 @@ export class FA2Algorithm {
 							this._config.barnesHutTheta
 						) {
 							// We treat the region as a single body, and we repulse
-							let xDist =
-								this._nodes[n + N.x] - this._regions[r + R.massCenterX]
-							let yDist =
-								this._nodes[n + N.y] - this._regions[r + R.massCenterY]
+							let xDist = this._nodes.x(n) - this._regions[r + R.massCenterX]
+							let yDist = this._nodes.y(n) - this._regions[r + R.massCenterY]
 
 							if (this._config.adjustSize) {
 								//-- Linear Anti-collision Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											this._nodes[n + N.mass] *
+											this._nodes.mass(n) *
 											this._regions[r + R.mass]) /
 										distance /
 										distance
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDx(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								} else if (distance < 0) {
 									factor =
 										(-coefficient *
-											this._nodes[n + N.mass] *
+											this._nodes.mass(n) *
 											this._regions[r + R.mass]) /
 										distance
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDx(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								}
 							} else {
 								//-- Linear Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											this._nodes[n + N.mass] *
+											this._nodes.mass(n) *
 											this._regions[r + R.mass]) /
 										distance /
 										distance
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDx(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								}
 							}
 
@@ -370,48 +357,45 @@ export class FA2Algorithm {
 							this._regions[r + R.node] !== n
 						) {
 							xDist =
-								this._nodes[n + N.x] -
-								this._nodes[this._regions[r + R.node] + N.x]
+								this._nodes.x(n) - this._nodes.x(this._regions[r + R.node])
 							yDist =
-								this._nodes[n + N.y] -
-								this._nodes[this._regions[r + R.node] + N.y]
+								this._nodes.y(n) - this._nodes.y(this._regions[r + R.node])
 
-							distance = Math.sqrt(xDist * xDist + yDist * yDist)
+							distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 
 							if (this._config.adjustSize) {
 								//-- Linear Anti-collision Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											this._nodes[n + N.mass] *
-											this._nodes[this._regions[r + R.node] + N.mass]) /
-										distance /
-										distance
+											this._nodes.mass(n) *
+											this._nodes.mass(this._regions[r + R.node])) /
+										distance ** 2
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDy(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								} else if (distance < 0) {
 									factor =
 										(-coefficient *
-											this._nodes[n + N.mass] *
-											this._nodes[this._regions[r + R.node] + N.mass]) /
+											this._nodes.mass(n) *
+											this._nodes.mass(this._regions[r + R.node])) /
 										distance
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDx(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								}
 							} else {
 								//-- Linear Repulsion
 								if (distance > 0) {
 									factor =
 										(coefficient *
-											this._nodes[n + N.mass] *
-											this._nodes[this._regions[r + R.node] + N.mass]) /
+											this._nodes.mass(n) *
+											this._nodes.mass(this._regions[r + R.node])) /
 										distance /
 										distance
 
-									this._nodes[n + N.dx] += xDist * factor
-									this._nodes[n + N.dy] += yDist * factor
+									this._nodes.addDx(n, xDist * factor)
+									this._nodes.addDy(n, yDist * factor)
 								}
 							}
 						}
@@ -430,44 +414,37 @@ export class FA2Algorithm {
 			for (let n1 = 0; n1 < this.nodesLength; n1 += ppn) {
 				for (let n2 = 0; n2 < n1; n2 += ppn) {
 					// Common to both methods
-					let xDist = this._nodes[n1 + N.x] - this._nodes[n2 + N.x]
-					let yDist = this._nodes[n1 + N.y] - this._nodes[n2 + N.y]
+					let xDist = this._nodes.x(n1) - this._nodes.x(n2)
+					let yDist = this._nodes.y(n1) - this._nodes.y(n2)
 					let factor
 
 					if (this._config.adjustSize) {
 						//-- Anticollision Linear Repulsion
 						let distance =
 							Math.sqrt(xDist * xDist + yDist * yDist) -
-							this._nodes[n1 + N.size] -
-							this._nodes[n2 + N.size]
+							this._nodes.size(n1) -
+							this._nodes.size(n2)
 
 						if (distance > 0) {
 							factor =
-								(coefficient *
-									this._nodes[n1 + N.mass] *
-									this._nodes[n2 + N.mass]) /
+								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
 								distance /
 								distance
 
 							// Updating nodes' dx and dy
-							this._nodes[n1 + N.dx] += xDist * factor
-							this._nodes[n1 + N.dy] += yDist * factor
-
-							this._nodes[n2 + N.dx] += xDist * factor
-							this._nodes[n2 + N.dy] += yDist * factor
+							this._nodes.addDx(n1, xDist * factor)
+							this._nodes.addDy(n1, yDist * factor)
+							this._nodes.addDx(n2, xDist * factor)
+							this._nodes.addDy(n2, yDist * factor)
 						} else if (distance < 0) {
 							factor =
-								100 *
-								coefficient *
-								this._nodes[n1 + N.mass] *
-								this._nodes[n2 + N.mass]
+								100 * coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)
 
 							// Updating nodes' dx and dy
-							this._nodes[n1 + N.dx] += xDist * factor
-							this._nodes[n1 + N.dy] += yDist * factor
-
-							this._nodes[n2 + N.dx] -= xDist * factor
-							this._nodes[n2 + N.dy] -= yDist * factor
+							this._nodes.addDx(n1, xDist * factor)
+							this._nodes.addDy(n1, yDist * factor)
+							this._nodes.subtractDx(n2, xDist * factor)
+							this._nodes.subtractDy(n2, yDist * factor)
 						}
 					} else {
 						//-- Linear Repulsion
@@ -475,18 +452,15 @@ export class FA2Algorithm {
 
 						if (distance > 0) {
 							factor =
-								(coefficient *
-									this._nodes[n1 + N.mass] *
-									this._nodes[n2 + N.mass]) /
+								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
 								distance /
 								distance
 
 							// Updating nodes' dx and dy
-							this._nodes[n1 + N.dx] += xDist * factor
-							this._nodes[n1 + N.dy] += yDist * factor
-
-							this._nodes[n2 + N.dx] -= xDist * factor
-							this._nodes[n2 + N.dy] -= yDist * factor
+							this._nodes.addDx(n1, xDist * factor)
+							this._nodes.addDy(n1, yDist * factor)
+							this._nodes.subtractDx(n2, xDist * factor)
+							this._nodes.subtractDy(n2, yDist * factor)
 						}
 					}
 				}
@@ -497,14 +471,14 @@ export class FA2Algorithm {
 	private computeGravity() {
 		for (let n = 0; n < this.nodesLength; n += ppn) {
 			// Common to both methods
-			const xDist = this._nodes[n + N.x]
-			const yDist = this._nodes[n + N.y]
+			const xDist = this._nodes.x(n)
+			const yDist = this._nodes.y(n)
 			const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 			const factor = this.getGravityFactor(n, distance)
 
 			// Updating node's dx and dy
-			this._nodes[n + N.dx] -= xDist * factor
-			this._nodes[n + N.dy] -= yDist * factor
+			this._nodes.subtractDx(n, xDist * factor)
+			this._nodes.subtractDy(n, yDist * factor)
 		}
 	}
 
@@ -526,17 +500,14 @@ export class FA2Algorithm {
 			const ewc = Math.pow(w, this._config.edgeWeightInfluence)
 
 			// Common measures
-			const xDist = this._nodes[n1 + N.x] - this._nodes[n2 + N.x]
-			const yDist = this._nodes[n1 + N.y] - this._nodes[n2 + N.y]
+			const xDist = this._nodes.x(n1) - this._nodes.x(n2)
+			const yDist = this._nodes.y(n1) - this._nodes.y(n2)
 			let distance, factor
 
 			// Applying attraction to nodes
 			if (this._config.adjustSizes) {
 				distance = Math.sqrt(
-					xDist ** 2 +
-						yDist ** 2 -
-						this._nodes[n1 + N.size] -
-						this._nodes[n2 + N.size],
+					xDist ** 2 + yDist ** 2 - this._nodes.size(n1) - this._nodes.size(n2),
 				)
 
 				if (this._config.linLogMode) {
@@ -546,7 +517,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								this._nodes[n1 + N.mass]
+								this._nodes.mass(n1)
 						}
 					} else {
 						//-- LinLog Anti-collision Attraction
@@ -558,7 +529,7 @@ export class FA2Algorithm {
 					if (this._config.outboundAttractionDistribution) {
 						//-- Linear Degree Distributed Anti-collision Attraction
 						if (distance > 0) {
-							factor = (-coefficient * ewc) / this._nodes[n1 + N.mass]
+							factor = (-coefficient * ewc) / this._nodes.mass(n1)
 						}
 					} else {
 						//-- Linear Anti-collision Attraction
@@ -577,7 +548,7 @@ export class FA2Algorithm {
 							factor =
 								(-coefficient * ewc * Math.log(1 + distance)) /
 								distance /
-								this._nodes[n1 + N.mass]
+								this._nodes.mass(n1)
 						}
 					} else {
 						//-- LinLog Attraction
@@ -589,7 +560,7 @@ export class FA2Algorithm {
 						//-- Linear Attraction Mass Distributed
 						// NOTE: Distance is set to 1 to override next condition
 						distance = 1
-						factor = (-coefficient * ewc) / this._nodes[n1 + N.mass]
+						factor = (-coefficient * ewc) / this._nodes.mass(n1)
 					} else {
 						//-- Linear Attraction
 						// NOTE: Distance is set to 1 to override next condition
@@ -603,11 +574,10 @@ export class FA2Algorithm {
 			// TODO: if condition or factor = 1?
 			if (distance > 0) {
 				// Updating nodes' dx and dy
-				this._nodes[n1 + N.dx] += xDist * factor
-				this._nodes[n1 + N.dy] += yDist * factor
-
-				this._nodes[n2 + N.dx] -= xDist * factor
-				this._nodes[n2 + N.dy] -= yDist * factor
+				this._nodes.addDx(n1, xDist * factor)
+				this._nodes.addDy(n1, yDist * factor)
+				this._nodes.subtractDx(n2, xDist * factor)
+				this._nodes.subtractDy(n2, yDist * factor)
 			}
 		}
 	}
@@ -618,79 +588,86 @@ export class FA2Algorithm {
 		// MATH: sqrt and square distances
 		if (this._config.adjustSizes) {
 			for (let n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[n + N.fixed]) {
-					force = Math.sqrt(
-						this._nodes[n + N.dx] ** 2 + this._nodes[n + N.dy] ** 2,
-					)
+				if (!this._nodes.fixed(n)) {
+					force = Math.sqrt(this._nodes.dx(n) ** 2 + this._nodes.dy(n) ** 2)
 
 					if (force > this.maxForce) {
-						this._nodes[n + N.dx] =
-							(this._nodes[n + N.dx] * this.maxForce) / force
-						this._nodes[n + N.dy] =
-							(this._nodes[n + N.dy] * this.maxForce) / force
+						this._nodes.setDx(n, (this._nodes.dx(n) * this.maxForce) / force)
+						this._nodes.setDy(n, (this._nodes.dy(n) * this.maxForce) / force)
 					}
 
 					swinging =
-						this._nodes[n + N.mass] *
+						this._nodes.mass(n) *
 						Math.sqrt(
-							(this._nodes[n + N.old_dx] - this._nodes[n + N.dx]) ** 2 +
-								(this._nodes[n + N.old_dy] - this._nodes[n + N.dy]) ** 2,
+							(this._nodes.old_dx(n) - this._nodes.dx(n)) ** 2 +
+								(this._nodes.old_dy(n) - this._nodes.dy(n)) ** 2,
 						)
 
 					traction =
 						Math.sqrt(
-							(this._nodes[n + N.old_dx] + this._nodes[n + N.dx]) ** 2 +
-								(this._nodes[n + N.old_dy] + this._nodes[n + N.dy]) ** 2,
+							(this._nodes.old_dx(n) + this._nodes.dx(n)) ** 2 +
+								(this._nodes.old_dy(n) + this._nodes.dy(n)) ** 2,
 						) / 2
 
 					nodespeed = (0.1 * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
 
 					// Updating node's positon
-					this._nodes[n + N.x] =
-						this._nodes[n + N.x] +
-						this._nodes[n + N.dx] * (nodespeed / this._config.slowDown)
-					this._nodes[n + N.y] =
-						this._nodes[n + N.y] +
-						this._nodes[n + N.dy] * (nodespeed / this._config.slowDown)
+					this._nodes.setX(
+						n,
+						this._nodes.x(n) +
+							this._nodes.dx(n) * (nodespeed / this._config.slowDown),
+					)
+					this._nodes.setY(
+						n,
+						this._nodes.y(n) +
+							this._nodes.dy(n * (nodespeed / this._config.slowDown)),
+					)
 				}
 			}
 		} else {
 			for (let n = 0; n < this.nodesLength; n += ppn) {
-				if (!this._nodes[n + N.fixed]) {
+				if (!this._nodes.fixed(n)) {
 					swinging =
-						this._nodes[n + N.mass] *
+						this._nodes.mass(n) *
 						Math.sqrt(
-							(this._nodes[n + N.old_dx] - this._nodes[n + N.dx]) ** 2 +
-								(this._nodes[n + N.old_dy] - this._nodes[n + N.dy]) ** 2,
+							(this._nodes.old_dx(n) - this._nodes.dx(n)) ** 2 +
+								(this._nodes.old_dy(n) - this._nodes.dy(n)) ** 2,
 						)
 
 					traction =
 						Math.sqrt(
-							(this._nodes[n + N.old_dx] + this._nodes[n + N.dx]) ** 2 +
-								(this._nodes[n + N.old_dy] + this._nodes[n + N.dy]) ** 2,
+							(this._nodes.old_dx(n) + this._nodes.dx(n)) ** 2 +
+								(this._nodes.old_dy(n) + this._nodes.dy(n)) ** 2,
 						) / 2
 
 					nodespeed =
-						(this._nodes[n + N.convergence] * Math.log(1 + traction)) /
+						(this._nodes.convergence(n) * Math.log(1 + traction)) /
 						(1 + Math.sqrt(swinging))
 
 					// Updating node convergence
-					this._nodes[n + N.convergence] = Math.min(
-						1,
-						Math.sqrt(
-							(nodespeed *
-								(this._nodes[n + N.dx] ** 2 + this._nodes[n + N.dy] ** 2)) /
-								(1 + Math.sqrt(swinging)),
+					this._nodes.setConvergence(
+						n,
+						Math.min(
+							1,
+							Math.sqrt(
+								(nodespeed *
+									(this._nodes.dx(n) ** 2 + this._nodes.dy(n) ** 2)) /
+									(1 + Math.sqrt(swinging)),
+							),
 						),
 					)
 
 					// Updating node's positon
-					this._nodes[n + N.x] =
-						this._nodes[n + N.x] +
-						this._nodes[n + N.dx] * (nodespeed / this._config.slowDown)
-					this._nodes[n + N.y] =
-						this._nodes[n + N.y] +
-						this._nodes[n + N.dy] * (nodespeed / this._config.slowDown)
+					this._nodes.setX(
+						n,
+						this._nodes.x(n) +
+							this._nodes.dx(n) * (nodespeed / this._config.slowDown),
+					)
+					this._nodes.setY(
+						n,
+						this._nodes.y(n) +
+							this._nodes.dy(n) * (nodespeed / this._config.slowDown),
+					)
 				}
 			}
 		}
@@ -702,7 +679,7 @@ export class FA2Algorithm {
 		if (this._config.outboundAttractionDistribution) {
 			outboundAttCompensation = 0
 			for (let n = 0; n < this.nodesLength; n += ppn) {
-				outboundAttCompensation += this._nodes[n + N.mass]
+				outboundAttCompensation += this._nodes.mass(n)
 			}
 
 			outboundAttCompensation /= this.nodesLength
@@ -715,22 +692,24 @@ export class FA2Algorithm {
 		let maxX = -Infinity
 		let minY = Infinity
 		let maxY = -Infinity
-
+		let x, y
 		// Setting up
 		// Computing min and max values
 		for (let n = 0; n < this.nodesLength; n += ppn) {
-			minX = Math.min(minX, this._nodes[n + N.x])
-			maxX = Math.max(maxX, this._nodes[n + N.x])
-			minY = Math.min(minY, this._nodes[n + N.y])
-			maxY = Math.max(maxY, this._nodes[n + N.y])
+			x = this._nodes.x(n)
+			y = this._nodes.y(n)
+			minX = Math.min(minX, x)
+			maxX = Math.max(maxX, x)
+			minY = Math.min(minY, y)
+			maxY = Math.max(maxY, y)
 		}
 		return [minX, maxX, minY, maxY]
 	}
 
 	private getQuadrantOfNodeInRegion(n: number, r: number): number {
 		// Find the quadrant of n
-		if (this._nodes[n + N.x] < this._regions[r + R.centerX]) {
-			if (this._nodes[n + N.y] < this._regions[r + R.centerY]) {
+		if (this._nodes.x(n) < this._regions[r + R.centerX]) {
+			if (this._nodes.y(n) < this._regions[r + R.centerY]) {
 				// Top Left quarter
 				return this._regions[r + R.firstChild]
 			} else {
@@ -738,7 +717,7 @@ export class FA2Algorithm {
 				return this._regions[r + R.firstChild] + ppr
 			}
 		} else {
-			if (this._nodes[n + N.y] < this._regions[r + R.centerY]) {
+			if (this._nodes.y(n) < this._regions[r + R.centerY]) {
 				// Top Right quarter
 				return this._regions[r + R.firstChild] + ppr * 2
 			} else {
@@ -756,12 +735,12 @@ export class FA2Algorithm {
 		if (this._config.strongGravityMode) {
 			// strong gravity
 			if (distance > 0) {
-				factor = coefficient * this._nodes[n + N.mass] * g
+				factor = coefficient * this._nodes.mass(n) * g
 			}
 		} else {
 			// linear anti-collision repulsion
 			if (distance > 0) {
-				factor = (coefficient * this._nodes[n + N.mass] * g) / distance
+				factor = (coefficient * this._nodes.mass(n) * g) / distance
 			}
 		}
 		return factor

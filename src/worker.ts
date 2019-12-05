@@ -15,7 +15,8 @@ function sendNewCoords() {
 // Algorithm run
 function run(iterations: number) {
 	for (let i = 0; i < iterations; i++) {
-		algorithm.pass()
+		algorithm.tick()
+		sendNewCoords()
 	}
 	sendNewCoords()
 }
@@ -24,17 +25,13 @@ function run(iterations: number) {
 var listener = function(e) {
 	switch (e.data.action) {
 		case 'start':
-			algorithm = new FA2Algorithm(
-				new Float32Array(e.data.nodes),
-				new Float32Array(e.data.edges),
-				e.data.config,
-			)
+			algorithm = new FA2Algorithm(e.data.nodes, e.data.edges, e.data.config)
 			// First iteration(s)
 			run(algorithm.configuration.startingIterations)
 			break
 
 		case 'loop':
-			algorithm.nodes = new Float32Array(e.data.nodes)
+			algorithm.nodes = e.data.nodes
 			run(algorithm.configuration.iterationsPerRender)
 			break
 
