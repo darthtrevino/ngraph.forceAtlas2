@@ -119,7 +119,7 @@ export class FA2Algorithm {
 						// Update center of mass and mass (we only do it for non-leaf regions)
 						this._regions.setMassCenterX(
 							r,
-							(this._regions.massCenterX(0) * this._regions.mass(r) +
+							(this._regions.massCenterX(r) * this._regions.mass(r) +
 								this._nodes.x(n) * this._nodes.mass(n)) /
 								(this._regions.mass(r) + this._nodes.mass(n)),
 						)
@@ -209,7 +209,8 @@ export class FA2Algorithm {
 							const q = this.getQuadrantOfNodeInRegion(this._regions.node(r), r)
 
 							// We remove r[0] from the region r, add its mass to r and record it in q
-							this._regions.addMass(r, this._nodes.mass(this._regions.node(r)))
+							// todo: should this be addMass instead?
+							this._regions.setMass(r, this._nodes.mass(this._regions.node(r)))
 							this._regions.setMassCenterX(
 								r,
 								this._nodes.x(this._regions.node(r)),
@@ -398,8 +399,7 @@ export class FA2Algorithm {
 						if (distance > 0) {
 							factor =
 								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
-								distance /
-								distance
+								distance ** 2
 
 							// Updating nodes' dx and dy
 							this._nodes.addDx(n1, xDist * factor)
@@ -423,8 +423,7 @@ export class FA2Algorithm {
 						if (distance > 0) {
 							factor =
 								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
-								distance /
-								distance
+								distance ** 2
 
 							// Updating nodes' dx and dy
 							this._nodes.addDx(n1, xDist * factor)
