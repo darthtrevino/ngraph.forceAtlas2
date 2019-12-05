@@ -3,31 +3,23 @@ import { forceAtlas2 } from '../src/Layout'
 import { colors } from './colors'
 import * as agm from 'ngraph.agmgen'
 import * as _ from 'underscore'
+const createGraph = require('ngraph.graph')
+const yeast = require('./yeast.json')
 
 export function init(communities, nodesCount, bridgeCount, force2) {
 	communities = _.range(communities)
 	let nodes = []
-	let graph = Graph.graph()
-
 	console.time('build graph')
-	for (let i = 0, c; i < nodesCount; i++) {
-		c = _.random(communities.length - 1)
-		graph.addLink('n' + i, 'community' + c)
-		nodes[i] = c
-	}
-	for (let j = 0, n, cs; j < bridgeCount; j++) {
-		n = _.random(nodesCount - 1)
-		cs = _.difference(communities, [nodes[n]])
-		graph.addLink('n' + n, 'community' + cs[_.random(cs.length)])
-	}
-	console.time('build graphEnd')
-
-	console.time('agm')
-	graph = agm(graph, {
-		coefficient: 0.3,
-		scale: 1,
+	let graph = createGraph()
+	yeast.graph.nodes.forEach(({ id, size, category }) => {
+		console.log('add-v')
+		graph.addNode(id)
 	})
-	console.time('agm')
+	yeast.graph.edges.forEach(({ source, target, weight }) => {
+		console.log('add-e')
+		graph.addLink(source, target, { weight })
+	})
+	console.timeEnd('build graph')
 
 	let layout
 	if (force2)
@@ -37,7 +29,7 @@ export function init(communities, nodesCount, bridgeCount, force2) {
 			strongGravityMode: false,
 			slowDown: 1,
 			outboundAttractionDistribution: false,
-			iterationsPerRender: 1,
+			iterationsPerRender: 500,
 			barnesHutOptimize: false,
 			barnesHutTheta: 0.5,
 			worker: true,
