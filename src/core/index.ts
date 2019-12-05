@@ -1,4 +1,4 @@
-export * from './FA2Algorithm'
+export * from '../algorithm'
 export * from './configuration'
 export * from './Nodes'
 export * from './Edges'

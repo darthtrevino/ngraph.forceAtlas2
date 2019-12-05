@@ -1,5 +1,5 @@
-import { FA2Algorithm } from './algorithm/FA2Algorithm'
-import { Nodes, Edges, FA2Configuration } from './algorithm'
+import { FA2Algorithm } from './algorithm'
+import { Nodes, Edges, FA2Configuration } from './core'
 
 let algorithm: FA2Algorithm
 

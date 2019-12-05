@@ -1,7 +1,7 @@
-import { DEFAULT_CONFIGURATION, FA2Configuration } from './configuration'
-import { Nodes, ppn } from './Nodes'
-import { Edges, ppe } from './Edges'
-import { Regions, ppr } from './Regions'
+import { DEFAULT_CONFIGURATION, FA2Configuration } from './core/configuration'
+import { Nodes, ppn } from './core/Nodes'
+import { Edges, ppe } from './core/Edges'
+import { Regions, ppr } from './core/Regions'
 
 const MAX_FORCE = 10
 

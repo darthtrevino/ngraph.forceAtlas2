@@ -1,12 +1,9 @@
 import { Rect } from './Rect'
-import { ppe, E, Edges } from './algorithm/Edges'
-import { ppn, N, Nodes } from './algorithm/Nodes'
+import { ppe, E, Edges } from './core/Edges'
+import { ppn, N, Nodes } from './core/Nodes'
 // @ts-ignore
 import workerScript from 'raw-loader!!../dist/fa2_worker.js'
-import {
-	FA2Configuration,
-	DEFAULT_CONFIGURATION,
-} from './algorithm/configuration'
+import { FA2Configuration, DEFAULT_CONFIGURATION } from './core/configuration'
 
 /**
  * Sigma ForceAtlas2.5 Supervisor
