@@ -258,6 +258,7 @@ export class FA2Algorithm {
 
 	private computeRepulsionBarnesHut() {
 		let coefficient = this._config.scalingRatio
+		let distance, factor, factorCoeff
 
 		// Applying repulsion through regions
 		for (let n = 0; n < this.nodesLength; n += ppn) {
@@ -266,16 +267,18 @@ export class FA2Algorithm {
 			let r = 0 // Starting with root region
 			while (true) {
 				if (this._regions.firstChild(r) >= 0) {
-					let factor
 					// The region has sub-regions
 
 					// We run the Barnes Hut test to see if we are at the right distance
-					let distance = Math.sqrt(
+					distance = Math.sqrt(
 						this._nodes.x(n) -
 							this._regions.massCenterX(r) ** 2 +
 							this._nodes.y(n) -
 							this._regions.massCenterY(r) ** 2,
 					)
+
+					factorCoeff =
+						coefficient * this._nodes.mass(n) * this._regions.mass(r)
 
 					if (
 						(2 * this._regions.size(r)) / distance <
@@ -288,34 +291,28 @@ export class FA2Algorithm {
 						if (this._config.adjustSize) {
 							//-- Linear Anti-collision Repulsion
 							if (distance > 0) {
-								factor =
-									(coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
-									distance ** 2
-
+								factor = factorCoeff / distance ** 2
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							} else if (distance < 0) {
-								factor =
-									(-coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
-									distance
-
+								factor = -factorCoeff / distance
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							}
 						} else {
 							//-- Linear Repulsion
 							if (distance > 0) {
-								factor =
-									(coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
-									distance ** 2
-
+								factor = factorCoeff / distance ** 2
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							}
 						}
 
 						// When this is done, we iterate. We have to look at the next sibling.
-						if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
+						if (this._regions.nextSibling(r) < 0) {
+							// No next sibling: we have finished the tree
+							break
+						}
 						r = this._regions.nextSibling(r)
 						continue
 					} else {
@@ -334,39 +331,27 @@ export class FA2Algorithm {
 					if (this._regions.node(r) >= 0 && this._regions.node(r) !== n) {
 						xDist = this._nodes.x(n) - this._nodes.x(this._regions.node(r))
 						yDist = this._nodes.y(n) - this._nodes.y(this._regions.node(r))
-
 						distance = Math.sqrt(xDist ** 2 + yDist ** 2)
+						factorCoeff =
+							coefficient *
+							this._nodes.mass(n) *
+							this._nodes.mass(this._regions.node(r))
 
 						if (this._config.adjustSize) {
 							//-- Linear Anti-collision Repulsion
 							if (distance > 0) {
-								factor =
-									(coefficient *
-										this._nodes.mass(n) *
-										this._nodes.mass(this._regions.node(r))) /
-									distance ** 2
-
+								factor = factorCoeff / distance ** 2
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							} else if (distance < 0) {
-								factor =
-									(-coefficient *
-										this._nodes.mass(n) *
-										this._nodes.mass(this._regions.node(r))) /
-									distance
-
+								factor = -factorCoeff / distance
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							}
 						} else {
 							//-- Linear Repulsion
 							if (distance > 0) {
-								factor =
-									(coefficient *
-										this._nodes.mass(n) *
-										this._nodes.mass(this._regions.node(r))) /
-									distance ** 2
-
+								factor = factorCoeff / distance ** 2
 								this._nodes.addDx(n, xDist * factor)
 								this._nodes.addDy(n, yDist * factor)
 							}
@@ -374,7 +359,10 @@ export class FA2Algorithm {
 					}
 
 					// When this is done, we iterate. We have to look at the next sibling.
-					if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
+					if (this._regions.nextSibling(r) < 0) {
+						// No next sibling: we have finished the tree
+						break
+					}
 					r = this._regions.nextSibling(r)
 					continue
 				}
