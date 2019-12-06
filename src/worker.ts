@@ -9,17 +9,18 @@ let algorithm: FA2Algorithm
  */
 
 // Sending data back to the supervisor
-function sendNewCoords() {
+function sendNodePositions() {
 	const nodes = algorithm.nodes.buffer
-	self.postMessage({ nodes }, [nodes])
+	self.postMessage({ nodes })
 }
 
 // Algorithm run
 function run(iterations: number) {
 	for (let i = 0; i < iterations; i++) {
 		algorithm.pass()
+		sendNodePositions()
 	}
-	sendNewCoords()
+	sendNodePositions()
 }
 
 // On supervisor message

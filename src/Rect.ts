@@ -4,7 +4,7 @@ export class Rect {
 	public readonly y1: number
 	public readonly y2: number
 
-	public constructor(x1, y1, x2, y2) {
+	public constructor(x1: number, y1: number, x2: number, y2: number) {
 		this.x1 = x1 || 0
 		this.y1 = y1 || 0
 		this.x2 = x2 || 0

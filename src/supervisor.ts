@@ -26,7 +26,12 @@ export class Supervisor {
 	private _pending: boolean = false
 	// TODO this doesn't appear to be used
 	private _needUpdate: boolean = false
-	private _graphRect: Rect
+	private _graphRect: Rect = new Rect(
+		Number.MAX_VALUE,
+		Number.MAX_VALUE,
+		Number.MIN_VALUE,
+		Number.MIN_VALUE,
+	)
 	private config: FA2Configuration
 	private nodesByteArray: Float32Array
 	private edgesByteArray: Float32Array
@@ -35,19 +40,13 @@ export class Supervisor {
 		this.graph = graph
 		const workerBlob = new Blob([workerScript], { type: 'text/javascript' })
 		this.worker = new Worker(window.URL.createObjectURL(workerBlob))
-		this.worker.addEventListener('message', this._onMessage.bind(this))
-		this._graphRect = new Rect(
-			Number.MAX_VALUE,
-			Number.MAX_VALUE,
-			Number.MIN_VALUE,
-			Number.MIN_VALUE,
-		)
+		this.worker.addEventListener('message', this.onMessage)
 
 		// Create supervisor if undefined
 		this.configure(config)
 
 		// Filling byteArrays
-		this._graphToByteArrays()
+		this.packGraphBuffers()
 	}
 
 	public configure(config: Partial<FA2Configuration>) {
@@ -63,9 +62,11 @@ export class Supervisor {
 
 		if (!this.started) {
 			// Sending init message to worker
-			this._sendByteArrayToWorker('start')
+			this.sendDataToWorker('start')
 			this.started = true
-		} else this._sendByteArrayToWorker()
+		} else {
+			this.sendDataToWorker()
+		}
 	}
 
 	public step() {
@@ -102,51 +103,48 @@ export class Supervisor {
 		return this._pending
 	}
 
-	forceUpdate() {
+	public forceUpdate() {
 		if (!this._pending) {
-			this._refreshNodesByteArray()
+			this.packNodeBuffer()
 		} else {
 			this._needUpdate = true
 		}
 	}
 
-	_onMessage(e) {
+	private onMessage = () => {
 		// Retrieving data
-		this.nodesByteArray = new Float32Array(e.data.nodes)
-
-		this._applyLayoutChanges()
+		this.applyLayoutUpdate()
 
 		this._pending = false
 		// If ForceAtlas2 is running, we act accordingly
 		if (this.running) {
 			// Send data back to worker and loop
-			this._sendByteArrayToWorker()
+			this.sendDataToWorker()
 		}
 	}
 
-	_graphToByteArrays() {
-		var nodes = this.graph.nodes,
-			edges = this.graph.edges,
-			nbytes = nodes.length * ppn,
-			ebytes = edges.length * ppe,
-			nIndex = {},
-			i,
-			j,
-			l
+	private packGraphBuffers() {
+		const { nodes, edges } = this.graph
+		const nbytes = nodes.length * ppn * 4
+		const ebytes = edges.length * ppe * 4
+		let nIndex = {}
 
 		// Allocating Byte arrays with correct nb of bytes
-		this.nodesByteArray = new Float32Array(nbytes)
-		this.edgesByteArray = new Float32Array(ebytes)
+		const nBuffer = new SharedArrayBuffer(nbytes)
+		const eBuffer = new SharedArrayBuffer(ebytes)
+		this.nodesByteArray = new Float32Array(nBuffer)
+		this.edgesByteArray = new Float32Array(eBuffer)
 
 		// Iterate through nodes
-		this._refreshNodesByteArray()
+		this.packNodeBuffer()
 
-		for (i = j = 0, l = nodes.length; i < l; i++, j += ppn)
+		for (let i = 0, j = 0, l = nodes.length; i < l; i++, j += ppn) {
 			// Populating index
 			nIndex[nodes[i].id] = j
+		}
 
 		// Iterate through edges
-		for (i = j = 0, l = edges.length; i < l; i++) {
+		for (let i = 0, j = 0, l = edges.length; i < l; i++) {
 			this.edgesByteArray[j] = nIndex[edges[i].fromId]
 			this.edgesByteArray[j + 1] = nIndex[edges[i].toId]
 			this.edgesByteArray[j + 2] = edges[i].weight || 1
@@ -154,23 +152,23 @@ export class Supervisor {
 		}
 	}
 
-	_refreshNodesByteArray() {
-		var minX = Number.MAX_VALUE,
+	private packNodeBuffer() {
+		let minX = Number.MAX_VALUE,
 			maxX = Number.MIN_VALUE,
 			minY = Number.MAX_VALUE,
 			maxY = Number.MIN_VALUE,
 			nodes = this.graph.nodes,
 			x,
 			y,
-			i,
-			l,
-			j
+			node
 
-		for (i = j = 0, l = nodes.length; i < l; i++) {
-			var node = nodes[i]
+		for (let i = 0, j = 0, l = nodes.length; i < l; i++) {
+			node = nodes[i]
+			x = node.x
+			y = node.y
 			// Populating byte array
-			this.nodesByteArray[j] = x = node.x
-			this.nodesByteArray[j + 1] = y = node.y
+			this.nodesByteArray[j] = x
+			this.nodesByteArray[j + 1] = y
 			this.nodesByteArray[j + 2] = 0
 			this.nodesByteArray[j + 3] = 0
 			this.nodesByteArray[j + 4] = 0
@@ -190,19 +188,19 @@ export class Supervisor {
 		this._graphRect = new Rect(minX, minY, maxX, maxY)
 	}
 
-	_applyLayoutChanges() {
-		var nodes = this.graph.nodes,
-			j = 0,
+	private applyLayoutUpdate() {
+		const { nodes } = this.graph
+		let j = 0,
 			x,
 			y
 
-		var minX = Number.MAX_VALUE,
+		let minX = Number.MAX_VALUE,
 			maxX = Number.MIN_VALUE,
 			minY = Number.MAX_VALUE,
 			maxY = Number.MIN_VALUE
 
 		// Moving nodes
-		for (var i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
+		for (let i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
 			if (!nodes[j].changed) {
 				nodes[j].x = x = this.nodesByteArray[i]
 				nodes[j].y = y = this.nodesByteArray[i + 1]
@@ -224,21 +222,18 @@ export class Supervisor {
 		this._graphRect = new Rect(minX, minY, maxX, maxY)
 	}
 
-	_sendByteArrayToWorker(action?: string) {
+	private sendDataToWorker(action?: string) {
 		const content: Record<string, any> = {
 			action: action || 'loop',
 			nodes: this.nodesByteArray.buffer,
 		}
 
-		const buffers = [this.nodesByteArray.buffer]
-
 		if (action === 'start') {
 			content.config = this.config || {}
 			content.edges = this.edgesByteArray.buffer
-			buffers.push(this.edgesByteArray.buffer)
 		}
 
-		this.worker.postMessage(content, buffers)
+		this.worker.postMessage(content)
 		this._pending = true
 	}
 }
