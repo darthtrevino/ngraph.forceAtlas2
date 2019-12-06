@@ -55,10 +55,7 @@ export function init(communities, nodesCount, bridgeCount, force2) {
 		squareNode = Graph.View.webglSquare
 
 	graphics.node(function(node) {
-		return squareNode(
-			15,
-			Number('0x' + colors[nodes[node.id.slice(1)]].slice(1) + 'FF'),
-		)
+		return squareNode(15, colors[nodes[node.id.slice(1)]])
 	})
 
 	let renderer = Graph.View.renderer(graph, {

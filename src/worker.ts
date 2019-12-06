@@ -1,4 +1,6 @@
 import { FA2Algorithm } from './algorithm'
+import { Nodes } from './core/Nodes'
+import { Edges } from './core/Edges'
 
 let algorithm: FA2Algorithm
 
@@ -25,8 +27,8 @@ var listener = function(e) {
 	switch (e.data.action) {
 		case 'start':
 			algorithm = new FA2Algorithm(
-				new Float32Array(e.data.nodes),
-				new Float32Array(e.data.edges),
+				new Nodes(new Float32Array(e.data.nodes)),
+				new Edges(new Float32Array(e.data.edges)),
 				e.data.config,
 			)
 			// First iteration(s)

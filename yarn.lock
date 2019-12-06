@@ -825,7 +825,7 @@ camelcase@^5.0.0:
   resolved "https://registry.yarnpkg.com/camelcase/-/camelcase-5.3.1.tgz#e3c9b31569e106811df242f715725a1f4c494320"
   integrity sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==
 
-chalk@2.4.2, chalk@^2.0.0, chalk@^2.3.0, chalk@^2.4.2:
+chalk@2.4.2, chalk@^2.0.0, chalk@^2.3.0, chalk@^2.4.1, chalk@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
   integrity sha512-Mti+f9lpJNcwF4tWV8/OrTTtF1gZi+f8FqlyAdouralcFWFQWF2+NgCHShjkCb+IFBLq9buZwE1xckQU4peSuQ==
@@ -1118,7 +1118,7 @@ create-hmac@^1.1.0, create-hmac@^1.1.2, create-hmac@^1.1.4:
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
 
-cross-spawn@6.0.5, cross-spawn@^6.0.0:
+cross-spawn@6.0.5, cross-spawn@^6.0.0, cross-spawn@^6.0.5:
   version "6.0.5"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-6.0.5.tgz#4a5ec7c64dfae22c3a14124dbacdee846d80cbc4"
   integrity sha512-eTVLrBSt7fjbDygz805pMnstIs2VTBNkRm0qxZd+M7A5XDdxVRWO5MxGBXZhjY4cqLYLdtrGqRf8mBPmzwSpWQ==
@@ -1521,6 +1521,22 @@ error-ex@^1.3.1:
   dependencies:
     is-arrayish "^0.2.1"
 
+es-abstract@^1.4.3:
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/es-abstract/-/es-abstract-1.16.3.tgz#52490d978f96ff9f89ec15b5cf244304a5bca161"
+  integrity sha512-WtY7Fx5LiOnSYgF5eg/1T+GONaGmpvpPdCpSnYij+U2gDTL0UPfWrhDw7b2IYb+9NQJsYpCA0wOQvZfsd6YwRw==
+  dependencies:
+    es-to-primitive "^1.2.1"
+    function-bind "^1.1.1"
+    has "^1.0.3"
+    has-symbols "^1.0.1"
+    is-callable "^1.1.4"
+    is-regex "^1.0.4"
+    object-inspect "^1.7.0"
+    object-keys "^1.1.1"
+    string.prototype.trimleft "^2.1.0"
+    string.prototype.trimright "^2.1.0"
+
 es-abstract@^1.5.1:
   version "1.16.2"
   resolved "https://registry.yarnpkg.com/es-abstract/-/es-abstract-1.16.2.tgz#4e874331645e9925edef141e74fc4bd144669d34"
@@ -1912,7 +1928,7 @@ fsevents@^1.2.7:
     nan "^2.12.1"
     node-pre-gyp "^0.12.0"
 
-function-bind@^1.1.1:
+function-bind@^1.0.2, function-bind@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
@@ -2768,6 +2784,16 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
+load-json-file@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/load-json-file/-/load-json-file-4.0.0.tgz#2f5f45ab91e33216234fd53adab668eb4ec0993b"
+  integrity sha1-L19Fq5HjMhYjT9U62rZo607AmTs=
+  dependencies:
+    graceful-fs "^4.1.2"
+    parse-json "^4.0.0"
+    pify "^3.0.0"
+    strip-bom "^3.0.0"
+
 loader-runner@^2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/loader-runner/-/loader-runner-2.4.0.tgz#ed47066bfe534d7e84c4c7b9998c2a75607d9357"
@@ -2904,6 +2930,11 @@ memory-fs@^0.5.0:
   dependencies:
     errno "^0.1.3"
     readable-stream "^2.0.1"
+
+memorystream@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/memorystream/-/memorystream-0.3.1.tgz#86d7090b30ce455d63fbae12dda51a47ddcaf9b2"
+  integrity sha1-htcJCzDORV1j+64S3aUaR93K+bI=
 
 merge-descriptors@1.0.1:
   version "1.0.1"
@@ -3181,54 +3212,53 @@ ngraph.agmgen@^0.1.3:
     ngraph.graph "0.0.12"
     ngraph.random "0.0.1"
 
-ngraph.centrality@0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/ngraph.centrality/-/ngraph.centrality-0.1.3.tgz#6ca07b4179aff007d8498edef256688b37d8769d"
-  integrity sha1-bKB7QXmv8AfYSY7e8lZoizfYdp0=
+ngraph.centrality@0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/ngraph.centrality/-/ngraph.centrality-0.3.0.tgz#8cc0ec0319ef0a374357fc1044c16975b179d09d"
+  integrity sha1-jMDsAxnvCjdDV/wQRMFpdbF50J0=
 
-ngraph.centrality@^0.1.3:
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/ngraph.centrality/-/ngraph.centrality-0.1.6.tgz#53e01864fdbec78c52ca4e1b3376b12c674ef0ad"
-  integrity sha1-U+AYZP2+x4xSyk4bM3axLGdO8K0=
+ngraph.centrality@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ngraph.centrality/-/ngraph.centrality-2.0.0.tgz#2b2dffebe6541678d740f2def63213eb4436276a"
+  integrity sha512-YuOb8qzZg/5AeEKXAfAmpCnMuDx9AmxG86rytXqfI+zlomGv+zhYMMF3AG+nPRGM7bUi/i58nKcFYXGuiYmhAg==
 
 ngraph.events@0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/ngraph.events/-/ngraph.events-0.0.3.tgz#38f55316f3d207ad631ff94f6622ca8f2c0e87d0"
   integrity sha1-OPVTFvPSB61jH/lPZiLKjywOh9A=
 
+ngraph.events@0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/ngraph.events/-/ngraph.events-0.0.4.tgz#72cb364488dd0fd7f057458449f6a3b17a722d9a"
+  integrity sha1-css2RIjdD9fwV0WESfajsXpyLZo=
+
 ngraph.expose@0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/ngraph.expose/-/ngraph.expose-0.0.0.tgz#746c34903a3848c45d033b14bc64619ea85fe5aa"
   integrity sha1-dGw0kDo4SMRdAzsUvGRhnqhf5ao=
 
-ngraph.forcelayout@0.0.20:
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/ngraph.forcelayout/-/ngraph.forcelayout-0.0.20.tgz#539b3a6ecb3369aac8b6863db2421cf75136a24b"
-  integrity sha1-U5s6bsszaarItoY9skIc91E2oks=
+ngraph.forcelayout@0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/ngraph.forcelayout/-/ngraph.forcelayout-0.5.0.tgz#51511c3e1db45d3d5436da75dfb1d6af097916f5"
+  integrity sha1-UVEcPh20XT1UNtp137HWrwl5FvU=
   dependencies:
-    ngraph.physics.simulator "0.0.10"
+    ngraph.events "0.0.4"
+    ngraph.physics.simulator "^0.3.0"
 
-ngraph.fromjson@0.1.7:
-  version "0.1.7"
-  resolved "https://registry.yarnpkg.com/ngraph.fromjson/-/ngraph.fromjson-0.1.7.tgz#5571270ac8fe103eb16844146e8948ad42219c73"
-  integrity sha1-VXEnCsj+ED6xaEQUbolIrUIhnHM=
+ngraph.fromjson@0.1.9:
+  version "0.1.9"
+  resolved "https://registry.yarnpkg.com/ngraph.fromjson/-/ngraph.fromjson-0.1.9.tgz#66910b664c69fa3c50a1ce79dd1dfdd5bab46f6e"
+  integrity sha1-ZpELZkxp+jxQoc553R391bq0b24=
   dependencies:
-    ngraph.graph "0.0.11"
+    ngraph.graph "0.0.14"
 
-ngraph.generators@0.0.15:
-  version "0.0.15"
-  resolved "https://registry.yarnpkg.com/ngraph.generators/-/ngraph.generators-0.0.15.tgz#1a09c7e92d883d78bc816c06c2f6640b45f4cff2"
-  integrity sha1-GgnH6S2IPXi8gWwGwvZkC0X0z/I=
+ngraph.generators@0.0.19:
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/ngraph.generators/-/ngraph.generators-0.0.19.tgz#552c0d087f942b9d0d2b0c6ca9aac436befa7659"
+  integrity sha1-VSwNCH+UK50NKwxsqarENr76dlk=
   dependencies:
-    ngraph.graph "0.0.11"
-    ngraph.random "0.0.1"
-
-ngraph.graph@0.0.11:
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/ngraph.graph/-/ngraph.graph-0.0.11.tgz#9f10a7267ef5977439ac507bafcba7f4ed728401"
-  integrity sha1-nxCnJn71l3Q5rFB7r8un9O1yhAE=
-  dependencies:
-    ngraph.events "0.0.3"
+    ngraph.graph "0.0.14"
+    ngraph.random "0.1.0"
 
 ngraph.graph@0.0.12:
   version "0.0.12"
@@ -3237,43 +3267,66 @@ ngraph.graph@0.0.12:
   dependencies:
     ngraph.events "0.0.3"
 
-ngraph.merge@0.0.1, ngraph.merge@^0.0.1:
+ngraph.graph@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/ngraph.graph/-/ngraph.graph-0.0.14.tgz#d47ac94967c920aaf76952d8a4e73346e1df2db7"
+  integrity sha1-1HrJSWfJIKr3aVLYpOczRuHfLbc=
+  dependencies:
+    ngraph.events "0.0.3"
+
+ngraph.merge@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/ngraph.merge/-/ngraph.merge-0.0.1.tgz#e4e80ce37581a3c96b17d545e3a43c85434b9025"
   integrity sha1-5OgM43WBo8lrF9VF46Q8hUNLkCU=
+
+ngraph.merge@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/ngraph.merge/-/ngraph.merge-1.0.0.tgz#d763cdfa48b1bbd4270ea246f06c9c8ff5d3477c"
+  integrity sha512-5J8YjGITUJeapsomtTALYsw7rFveYkM+lBj3QiYZ79EymQcuri65Nw3knQtFxQBU1r5iOaVRXrSwMENUPK62Vg==
 
 ngraph.physics.primitives@0.0.7:
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/ngraph.physics.primitives/-/ngraph.physics.primitives-0.0.7.tgz#5dc9e179ba1f92e6dec774b01cd68914120b795b"
   integrity sha1-Xcnhebofkubex3SwHNaJFBILeVs=
 
-ngraph.physics.simulator@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/ngraph.physics.simulator/-/ngraph.physics.simulator-0.0.10.tgz#33c475296b1c767615ae2d27672196f4f06565d5"
-  integrity sha1-M8R1KWscdnYVri0nZyGW9PBlZdU=
+ngraph.physics.simulator@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/ngraph.physics.simulator/-/ngraph.physics.simulator-0.3.0.tgz#7ca6fc3e3617c73e1080572eaa8e04dbb77e0102"
+  integrity sha1-fKb8PjYXxz4QgFcuqo4E27d+AQI=
   dependencies:
+    ngraph.events "0.0.3"
     ngraph.expose "0.0.0"
     ngraph.merge "0.0.1"
     ngraph.physics.primitives "0.0.7"
-    ngraph.quadtreebh "0.0.3"
+    ngraph.quadtreebh "0.0.4"
     ngraph.random "0.0.1"
 
-ngraph.quadtreebh@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/ngraph.quadtreebh/-/ngraph.quadtreebh-0.0.3.tgz#9aee2a0931b19780d34ad83616e96a2536751295"
-  integrity sha1-mu4qCTGxl4DTStg2FulqJTZ1EpU=
+ngraph.quadtreebh@0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/ngraph.quadtreebh/-/ngraph.quadtreebh-0.0.4.tgz#c700d44e6e4af07b6d05001ba3987ff5e2dcd62c"
+  integrity sha1-xwDUTm5K8HttBQAbo5h/9eLc1iw=
   dependencies:
     ngraph.random "0.0.1"
 
-ngraph.random@0.0.1, ngraph.random@^0.0.1:
+ngraph.random@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/ngraph.random/-/ngraph.random-0.0.1.tgz#c008e2ebbfdffaf17ed10e4bbc913e567166bcf8"
   integrity sha1-wAji67/f+vF+0Q5LvJE+VnFmvPg=
 
-ngraph.tojson@0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/ngraph.tojson/-/ngraph.tojson-0.1.3.tgz#72152af3306c001797bb7cc92930e921ba7beb3a"
-  integrity sha1-chUq8zBsABeXu3zJKTDpIbp76zo=
+ngraph.random@0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/ngraph.random/-/ngraph.random-0.1.0.tgz#1b6e9573529e080677da6ffa098790d76a0948a9"
+  integrity sha1-G26Vc1KeCAZ32m/6CYeQ12oJSKk=
+
+ngraph.random@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/ngraph.random/-/ngraph.random-1.0.0.tgz#dc6de528726c8f502de5242f43222c896d5dd543"
+  integrity sha512-deLYx/kdrchInjD+S7IMCtLAyixWRXC3En9TI0KL2JbWIb8Z9SFv8UfSOLQppMBswy08aiYkoaucfLA7d8Ffcg==
+
+ngraph.tojson@0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/ngraph.tojson/-/ngraph.tojson-0.1.4.tgz#39f0046588440ade622d58734d589d7974a0b3bc"
+  integrity sha1-OfAEZYhECt5iLVhzTVideXSgs7w=
 
 nice-try@^1.0.4:
   version "1.0.5"
@@ -3345,7 +3398,7 @@ nopt@^4.0.1:
     abbrev "1"
     osenv "^0.1.4"
 
-normalize-package-data@^2.5.0:
+normalize-package-data@^2.3.2, normalize-package-data@^2.5.0:
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/normalize-package-data/-/normalize-package-data-2.5.0.tgz#e66db1838b200c1dfc233225d12cb36520e234a8"
   integrity sha512-/5CMN3T0R4XTj4DcGaexo+roZSdSFW/0AOOTROrjxzCG1wrWXEsGbRKevjlIL+ZDE4sZlJr5ED4YW0yqmkK+eA==
@@ -3379,6 +3432,21 @@ npm-packlist@^1.1.6:
   dependencies:
     ignore-walk "^3.0.1"
     npm-bundled "^1.0.1"
+
+npm-run-all@^4.1.5:
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/npm-run-all/-/npm-run-all-4.1.5.tgz#04476202a15ee0e2e214080861bff12a51d98fba"
+  integrity sha512-Oo82gJDAVcaMdi3nuoKFavkIHBRVqQ1qvMb+9LHk/cF4P6B2m8aP04hGf7oL6wZ9BuGwX1onlLhpuoofSyoQDQ==
+  dependencies:
+    ansi-styles "^3.2.1"
+    chalk "^2.4.1"
+    cross-spawn "^6.0.5"
+    memorystream "^0.3.1"
+    minimatch "^3.0.4"
+    pidtree "^0.3.0"
+    read-pkg "^3.0.0"
+    shell-quote "^1.6.1"
+    string.prototype.padend "^3.0.0"
 
 npm-run-path@^2.0.0:
   version "2.0.2"
@@ -3742,6 +3810,13 @@ path-to-regexp@0.1.7:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.7.tgz#df604178005f522f15eb4490e7247a1bfaa67f8c"
   integrity sha1-32BBeABfUi8V60SQ5yR6G/qmf4w=
 
+path-type@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/path-type/-/path-type-3.0.0.tgz#cef31dc8e0a1a3bb0d105c0cd97cf3bf47f4e36f"
+  integrity sha512-T2ZUsdZFHgA3u4e5PfPbjd7HDDpxPnQb5jN0SrDsjNSuVXHJqtwTnWqG0B1jZrgmJ/7lj1EmVIByWt1gxGkWvg==
+  dependencies:
+    pify "^3.0.0"
+
 pbkdf2@^3.0.3:
   version "3.0.17"
   resolved "https://registry.yarnpkg.com/pbkdf2/-/pbkdf2-3.0.17.tgz#976c206530617b14ebb32114239f7b09336e93a6"
@@ -3758,10 +3833,20 @@ picomatch@^2.0.5:
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.1.1.tgz#ecdfbea7704adb5fe6fb47f9866c4c0e15e905c5"
   integrity sha512-OYMyqkKzK7blWO/+XZYP6w8hH0LDvkBvdvKukti+7kqYFCiEAk+gI3DWnryapc0Dau05ugGTy0foQ6mqn4AHYA==
 
+pidtree@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/pidtree/-/pidtree-0.3.0.tgz#f6fada10fccc9f99bf50e90d0b23d72c9ebc2e6b"
+  integrity sha512-9CT4NFlDcosssyg8KVFltgokyKZIFjoBxw8CTGy+5F38Y1eQWrt8tRayiUOXE+zVKQnYu5BR8JjCtvK3BcnBhg==
+
 pify@^2.0.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/pify/-/pify-2.3.0.tgz#ed141a6ac043a849ea588498e7dca8b15330e90c"
   integrity sha1-7RQaasBDqEnqWISY59yosVMw6Qw=
+
+pify@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/pify/-/pify-3.0.0.tgz#e5a4acd2c101fdf3d9a4d07f0dbc4db49dd28176"
+  integrity sha1-5aSs0sEB/fPZpNB/DbxNtJ3SgXY=
 
 pify@^4.0.1:
   version "4.0.1"
@@ -3995,6 +4080,15 @@ read-only-stream@^2.0.0:
   dependencies:
     readable-stream "^2.0.2"
 
+read-pkg@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/read-pkg/-/read-pkg-3.0.0.tgz#9cbc686978fee65d16c00e2b19c237fcf6e38389"
+  integrity sha1-nLxoaXj+5l0WwA4rGcI3/Pbjg4k=
+  dependencies:
+    load-json-file "^4.0.0"
+    normalize-package-data "^2.3.2"
+    path-type "^3.0.0"
+
 read-pkg@^5.2.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/read-pkg/-/read-pkg-5.2.0.tgz#7bf295438ca5a33e56cd30e053b34ee7250c93cc"
@@ -4153,6 +4247,13 @@ rimraf@^2.5.4, rimraf@^2.6.1, rimraf@^2.6.3:
   version "2.7.1"
   resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-2.7.1.tgz#35797f13a7fdadc566142c29d4f07ccad483e3ec"
   integrity sha512-uWjbaKIK3T1OSVptzX7Nl6PvQ3qAGtKEtVRjRuazjfL3Bx5eI409VZSqgND+4UNnmzLVdPj9FqFJNPqBZFve4w==
+  dependencies:
+    glob "^7.1.3"
+
+rimraf@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-3.0.0.tgz#614176d4b3010b75e5c390eb0ee96f6dc0cebb9b"
+  integrity sha512-NDGVxTsjqfunkds7CqsOiEnxln4Bo7Nddl3XhS4pXg5OzwkLqJ971ZVAAnB+DDLnF76N+VnDEiBHaVV8I06SUg==
   dependencies:
     glob "^7.1.3"
 
@@ -4687,6 +4788,15 @@ string-width@^3.0.0, string-width@^3.1.0:
     is-fullwidth-code-point "^2.0.0"
     strip-ansi "^5.1.0"
 
+string.prototype.padend@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/string.prototype.padend/-/string.prototype.padend-3.0.0.tgz#f3aaef7c1719f170c5eab1c32bf780d96e21f2f0"
+  integrity sha1-86rvfBcZ8XDF6rHDK/eA2W4h8vA=
+  dependencies:
+    define-properties "^1.1.2"
+    es-abstract "^1.4.3"
+    function-bind "^1.0.2"
+
 string.prototype.trimleft@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/string.prototype.trimleft/-/string.prototype.trimleft-2.1.0.tgz#6cc47f0d7eb8d62b0f3701611715a3954591d634"
@@ -4737,6 +4847,11 @@ strip-ansi@^5.0.0, strip-ansi@^5.1.0, strip-ansi@^5.2.0:
   integrity sha512-DuRs1gKbBqsMKIZlrffwlug8MHkcnpjs5VPmL1PAh+mA30U0DTotfDZ0d2UUsXpPmPmMMJ6W773MaA3J+lbiWA==
   dependencies:
     ansi-regex "^4.1.0"
+
+strip-bom@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/strip-bom/-/strip-bom-3.0.0.tgz#2334c18e9c759f7bdd56fdef7e9ae3d588e68ed3"
+  integrity sha1-IzTBjpx1n3vdVv3vfprj1YjmjtM=
 
 strip-eof@^1.0.0:
   version "1.0.0"
@@ -4946,10 +5061,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@^3.7.2:
-  version "3.7.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.7.2.tgz#27e489b95fa5909445e9fef5ee48d81697ad18fb"
-  integrity sha512-ml7V7JfiN2Xwvcer+XAf2csGO1bPBdRbFCkYBczNZggrBZ9c7G3riSUeJmqEU5uOtXNPMhE3n+R4FA/3YOAWOQ==
+typescript@^3.7.3:
+  version "3.7.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.7.3.tgz#b36840668a16458a7025b9eabfad11b66ab85c69"
+  integrity sha512-Mcr/Qk7hXqFBXMN7p7Lusj1ktCBydylfQM/FZCk5glCNQJrCUKPkMHdo9R0MTFWsC/4kPFvDS0fDPvukfCkFsw==
 
 uglify-js@3.4.x:
   version "3.4.10"
@@ -5127,21 +5242,21 @@ vary@~1.1.2:
   resolved "https://registry.yarnpkg.com/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha1-IpnwLG3tMNSllhsLn3RSShj2NPw=
 
-vivagraphjs@^0.7.8:
-  version "0.7.12"
-  resolved "https://registry.yarnpkg.com/vivagraphjs/-/vivagraphjs-0.7.12.tgz#e5fb9736540158351fedb61d5d1ddd22ffb4aaab"
-  integrity sha1-5fuXNlQBWDUf7bYdXR3dIv+0qqs=
+vivagraphjs@^0.12.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/vivagraphjs/-/vivagraphjs-0.12.0.tgz#6fd06ef6136aaeca5cffea86d6d6f8bfaff7f52b"
+  integrity sha512-Air+vUHXAWj8NTWUnbU800yKC7SiHpCVwpKIPfDtr5436YoMd7cpg8blt6Fn9xarx+sz1osRxGHBHTaHvcsR6Q==
   dependencies:
     gintersect "0.1.0"
-    ngraph.centrality "0.1.3"
+    ngraph.centrality "0.3.0"
     ngraph.events "0.0.3"
-    ngraph.forcelayout "0.0.20"
-    ngraph.fromjson "0.1.7"
-    ngraph.generators "0.0.15"
-    ngraph.graph "0.0.11"
+    ngraph.forcelayout "0.5.0"
+    ngraph.fromjson "0.1.9"
+    ngraph.generators "0.0.19"
+    ngraph.graph "0.0.14"
     ngraph.merge "0.0.1"
     ngraph.random "0.0.1"
-    ngraph.tojson "0.1.3"
+    ngraph.tojson "0.1.4"
     simplesvg "0.0.10"
 
 vm-browserify@^1.0.0, vm-browserify@^1.0.1:

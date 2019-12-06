@@ -1,5 +1,7 @@
 import { Rect } from './Rect'
-import { ppe, ppn } from './algorithm'
+import { ppe } from './core/Edges'
+import { ppn } from './core/Nodes'
+
 // @ts-ignore
 import workerScript from 'raw-loader!!../dist/fa2_worker.js'
 import { FA2Configuration, DEFAULT_CONFIGURATION } from './configuration'
