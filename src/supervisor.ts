@@ -114,13 +114,7 @@ export class Supervisor {
 	private onMessage = () => {
 		// Retrieving data
 		this.applyLayoutUpdate()
-
 		this._pending = false
-		// If ForceAtlas2 is running, we act accordingly
-		if (this.running) {
-			// Send data back to worker and loop
-			this.sendDataToWorker()
-		}
 	}
 
 	private packGraphBuffers() {
