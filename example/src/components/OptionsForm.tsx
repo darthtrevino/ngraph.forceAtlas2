@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { memo, useMemo, useCallback } from 'react'
+import { memo, useMemo, useCallback, useState } from 'react'
 import { ExecuteLayoutOptions } from '../types'
 
 export interface OptionsFormProps {
@@ -7,12 +7,14 @@ export interface OptionsFormProps {
 }
 
 export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
+	const [useRandomGraph, setUseRandomGraph] = useState(true)
 	const options = useMemo<ExecuteLayoutOptions>(
 		() => ({
 			numCommunities: 5,
 			numNodes: 1000,
 			numBridges: 100,
 			useFa2: true,
+			useRandomGraph: true,
 		}),
 		[],
 	)
@@ -43,28 +45,23 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 		},
 		[options],
 	)
+
+	const onUseRandomGraphChanged = useCallback(
+		(ev: React.ChangeEvent<HTMLInputElement>) => {
+			options.useRandomGraph = ev.target.checked
+			// trigger a re-render
+			setUseRandomGraph(options.useRandomGraph)
+		},
+		[options],
+	)
 	return (
 		<div id="setup">
-			<label htmlFor="communities">communities </label>
+			<label htmlFor="randomGraph">random</label>
 			<input
-				id="communities"
-				type="text"
-				defaultValue={options.numCommunities}
-				onChange={onNumCommunitiesChanged}
-			/>
-			<label htmlFor="nodesCount">nodesCount</label>
-			<input
-				id="nodesCount"
-				type="text"
-				defaultValue={options.numNodes}
-				onChange={onNumNodesChanged}
-			/>
-			<label htmlFor="bridgeCount">bridgeCount</label>
-			<input
-				id="bridgeCount"
-				type="text"
-				defaultValue={options.numBridges}
-				onChange={onNumBridgesChanged}
+				type="checkbox"
+				id="randomGraph"
+				defaultChecked={true}
+				onChange={onUseRandomGraphChanged}
 			/>
 			<label htmlFor="force">forceAtlas2</label>
 			<input
@@ -73,6 +70,31 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 				defaultChecked={true}
 				onChange={onUseFa2Changed}
 			/>
+			{options.useRandomGraph ? (
+				<>
+					<label htmlFor="communities">communities </label>
+					<input
+						id="communities"
+						type="text"
+						defaultValue={options.numCommunities}
+						onChange={onNumCommunitiesChanged}
+					/>
+					<label htmlFor="nodesCount">nodesCount</label>
+					<input
+						id="nodesCount"
+						type="text"
+						defaultValue={options.numNodes}
+						onChange={onNumNodesChanged}
+					/>
+					<label htmlFor="bridgeCount">bridgeCount</label>
+					<input
+						id="bridgeCount"
+						type="text"
+						defaultValue={options.numBridges}
+						onChange={onNumBridgesChanged}
+					/>
+				</>
+			) : null}
 			<button onClick={handleOnClick}>Execute Layout</button>
 		</div>
 	)

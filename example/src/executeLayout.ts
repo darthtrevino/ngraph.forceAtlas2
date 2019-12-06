@@ -6,7 +6,13 @@ import { ExecuteLayoutOptions } from './types'
 
 export function executeLayout(
 	container: HTMLDivElement,
-	{ numCommunities, numNodes, numBridges, useFa2 }: ExecuteLayoutOptions,
+	{
+		numCommunities,
+		numNodes,
+		numBridges,
+		useFa2,
+		useRandomGraph,
+	}: ExecuteLayoutOptions,
 ) {
 	console.log(
 		`execute ${
@@ -15,7 +21,9 @@ export function executeLayout(
 	)
 	// flush out the container's content
 	container.innerHTML = ''
-	const [graph, nodes] = createRandomGraph(numCommunities, numNodes, numBridges)
+	const [graph, nodes] = useRandomGraph
+		? createRandomGraph(numCommunities, numNodes, numBridges)
+		: createJsonGraph()
 	const layout = createLayout(useFa2, graph)
 
 	const graphics = Graph.View.webglGraphics()
