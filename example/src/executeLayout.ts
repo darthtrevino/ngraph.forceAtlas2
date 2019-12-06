@@ -8,6 +8,8 @@ export function executeLayout(
 	container: HTMLDivElement,
 	{ numCommunities, numNodes, numBridges, useFa2 }: ExecuteLayoutOptions,
 ) {
+	// flush out the container's content
+	container.innerHTML = ''
 	const [graph, nodes] = createRandomGraph(numCommunities, numNodes, numBridges)
 	const layout = createLayout(useFa2, graph)
 
