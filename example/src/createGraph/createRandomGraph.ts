@@ -23,13 +23,13 @@ export function createRandomGraph(
 		cs = _.difference(communities, [nodes[n]])
 		graph.addLink('n' + n, 'community' + cs[_.random(cs.length)])
 	}
-	console.time('build graphEnd')
+	console.timeEnd('build graph')
 
 	console.time('agm')
 	graph = agm(graph, {
 		coefficient: 0.3,
 		scale: 1,
 	})
-	console.time('agm')
+	console.timeEnd('agm')
 	return [graph, nodes]
 }
