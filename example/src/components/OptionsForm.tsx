@@ -20,19 +20,19 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 	const handleOnClick = useCallback(() => onClick(options), [onClick, options])
 	const onNumCommunitiesChanged = useCallback(
 		(ev: React.ChangeEvent<HTMLInputElement>) => {
-			options.numCommunities = ev.target.valueAsNumber
+			options.numCommunities = parseInt(ev.target.value)
 		},
 		[options],
 	)
 	const onNumNodesChanged = useCallback(
 		(ev: React.ChangeEvent<HTMLInputElement>) => {
-			options.numNodes = ev.target.valueAsNumber
+			options.numNodes = parseInt(ev.target.value)
 		},
 		[options],
 	)
 	const onNumBridgesChanged = useCallback(
 		(ev: React.ChangeEvent<HTMLInputElement>) => {
-			options.numBridges = ev.target.valueAsNumber
+			options.numBridges = parseInt(ev.target.value)
 		},
 		[options],
 	)
