@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"module": "CommonJS",
 		"moduleResolution": "node",
-		"allowSyntheticDefaultImports": true,
 		"target": "ES5",
+		"jsx": "react",
 		"lib": ["DOM", "ESNext", "WebWorker"]
 	}
 }

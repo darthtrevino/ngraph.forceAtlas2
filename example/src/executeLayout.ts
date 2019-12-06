@@ -1,20 +1,15 @@
+import { createLayout } from './createLayout'
+import { createRandomGraph, createJsonGraph } from './createGraph'
 import { Graph } from 'vivagraphjs'
 import { colors } from './colors'
-import { createRandomGraph, createJsonGraph } from './createGraph'
-import { createLayout } from './createLayout'
+import { ExecuteLayoutOptions } from './types'
 
-export function init(
-	communities: number,
-	nodesCount: number,
-	bridgeCount: number,
-	fa2: boolean,
+export function executeLayout(
+	container: HTMLDivElement,
+	{ numCommunities, numNodes, numBridges, useFa2 }: ExecuteLayoutOptions,
 ) {
-	const container = document.querySelector('#cont')
-	const [graph, nodes] = createRandomGraph(communities, nodesCount, bridgeCount)
-	// const [graph, nodes] = createJsonGraph()
-	console.log('using graph', graph)
-
-	const layout = createLayout(fa2, graph)
+	const [graph, nodes] = createRandomGraph(numCommunities, numNodes, numBridges)
+	const layout = createLayout(useFa2, graph)
 
 	const graphics = Graph.View.webglGraphics()
 	const drawSquare = Graph.View.webglSquare

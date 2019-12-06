@@ -5,11 +5,21 @@
 		<style type="text/css">
 			html,
 			body,
-			#cont {
+			#root {
 				height: 100%;
 				width: 100%;
 				margin: 0;
 			}
+
+			#root {
+				display: flex;
+				flex-direction: column;
+			}
+
+			.graph-container {
+				flex: 1;
+			}
+
 			body {
 				overflow: hidden;
 				background-color: #333333;
@@ -28,17 +38,6 @@
 		<title></title>
 	</head>
 	<body>
-		<form id="setup">
-			<label for="communities">communities </label
-			><input type="text" id="communities" value="5" />
-			<label for="nodesCount">nodesCount</label
-			><input type="text" id="nodesCount" value="1000" />
-			<label for="bridgeCount">bridgeCount</label
-			><input type="text" id="bridgeCount" value="100" />
-			<label for="force">forceAtlas2</label
-			><input type="checkbox" id="force" checked="checked" />
-			<input type="submit" value="ok" />
-		</form>
-		<div id="cont"></div>
+		<div id="root"></div>
 	</body>
 </html>
