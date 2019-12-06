@@ -250,125 +250,67 @@ export class FA2Algorithm {
 		// NOTES: adjustSize = antiCollision & scalingRatio = coefficient
 
 		if (this._config.barnesHutOptimize) {
-			let coefficient = this._config.scalingRatio
+			this.computeRepulsionBarnesHut()
+		} else {
+			this.computeRepulsionUnoptimized()
+		}
+	}
 
-			// Applying repulsion through regions
-			for (let n = 0; n < this.nodesLength; n += ppn) {
-				// Computing leaf quad nodes iteration
+	private computeRepulsionBarnesHut() {
+		let coefficient = this._config.scalingRatio
 
-				let r = 0 // Starting with root region
-				while (true) {
-					if (this._regions.firstChild(r) >= 0) {
-						let factor
-						// The region has sub-regions
+		// Applying repulsion through regions
+		for (let n = 0; n < this.nodesLength; n += ppn) {
+			// Computing leaf quad nodes iteration
 
-						// We run the Barnes Hut test to see if we are at the right distance
-						let distance = Math.sqrt(
-							this._nodes.x(n) -
-								this._regions.massCenterX(r) ** 2 +
-								this._nodes.y(n) -
-								this._regions.massCenterY(r) ** 2,
-						)
+			let r = 0 // Starting with root region
+			while (true) {
+				if (this._regions.firstChild(r) >= 0) {
+					let factor
+					// The region has sub-regions
 
-						if (
-							(2 * this._regions.size(r)) / distance <
-							this._config.barnesHutTheta
-						) {
-							// We treat the region as a single body, and we repulse
-							let xDist = this._nodes.x(n) - this._regions.massCenterX(r)
-							let yDist = this._nodes.y(n) - this._regions.massCenterY(r)
+					// We run the Barnes Hut test to see if we are at the right distance
+					let distance = Math.sqrt(
+						this._nodes.x(n) -
+							this._regions.massCenterX(r) ** 2 +
+							this._nodes.y(n) -
+							this._regions.massCenterY(r) ** 2,
+					)
 
-							if (this._config.adjustSize) {
-								//-- Linear Anti-collision Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes.mass(n) *
-											this._regions.mass(r)) /
-										distance ** 2
+					if (
+						(2 * this._regions.size(r)) / distance <
+						this._config.barnesHutTheta
+					) {
+						// We treat the region as a single body, and we repulse
+						let xDist = this._nodes.x(n) - this._regions.massCenterX(r)
+						let yDist = this._nodes.y(n) - this._regions.massCenterY(r)
 
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								} else if (distance < 0) {
-									factor =
-										(-coefficient *
-											this._nodes.mass(n) *
-											this._regions.mass(r)) /
-										distance
+						if (this._config.adjustSize) {
+							//-- Linear Anti-collision Repulsion
+							if (distance > 0) {
+								factor =
+									(coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
+									distance ** 2
 
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								}
-							} else {
-								//-- Linear Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes.mass(n) *
-											this._regions.mass(r)) /
-										distance ** 2
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
+							} else if (distance < 0) {
+								factor =
+									(-coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
+									distance
 
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								}
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
 							}
-
-							// When this is done, we iterate. We have to look at the next sibling.
-							if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
-							r = this._regions.nextSibling(r)
-							continue
 						} else {
-							// The region is too close and we have to look at sub-regions
-							r = this._regions.firstChild(r)
-							continue
-						}
-					} else {
-						let xDist
-						let yDist
-						let distance
-						let factor
-						// The region has no sub-region
-						// If there is a node r[0] and it is not n, then repulse
+							//-- Linear Repulsion
+							if (distance > 0) {
+								factor =
+									(coefficient * this._nodes.mass(n) * this._regions.mass(r)) /
+									distance ** 2
 
-						if (this._regions.node(r) >= 0 && this._regions.node(r) !== n) {
-							xDist = this._nodes.x(n) - this._nodes.x(this._regions.node(r))
-							yDist = this._nodes.y(n) - this._nodes.y(this._regions.node(r))
-
-							distance = Math.sqrt(xDist ** 2 + yDist ** 2)
-
-							if (this._config.adjustSize) {
-								//-- Linear Anti-collision Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes.mass(n) *
-											this._nodes.mass(this._regions.node(r))) /
-										distance ** 2
-
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								} else if (distance < 0) {
-									factor =
-										(-coefficient *
-											this._nodes.mass(n) *
-											this._nodes.mass(this._regions.node(r))) /
-										distance
-
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								}
-							} else {
-								//-- Linear Repulsion
-								if (distance > 0) {
-									factor =
-										(coefficient *
-											this._nodes.mass(n) *
-											this._nodes.mass(this._regions.node(r))) /
-										distance ** 2
-
-									this._nodes.addDx(n, xDist * factor)
-									this._nodes.addDy(n, yDist * factor)
-								}
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
 							}
 						}
 
@@ -376,66 +318,117 @@ export class FA2Algorithm {
 						if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
 						r = this._regions.nextSibling(r)
 						continue
+					} else {
+						// The region is too close and we have to look at sub-regions
+						r = this._regions.firstChild(r)
+						continue
 					}
+				} else {
+					let xDist
+					let yDist
+					let distance
+					let factor
+					// The region has no sub-region
+					// If there is a node r[0] and it is not n, then repulse
+
+					if (this._regions.node(r) >= 0 && this._regions.node(r) !== n) {
+						xDist = this._nodes.x(n) - this._nodes.x(this._regions.node(r))
+						yDist = this._nodes.y(n) - this._nodes.y(this._regions.node(r))
+
+						distance = Math.sqrt(xDist ** 2 + yDist ** 2)
+
+						if (this._config.adjustSize) {
+							//-- Linear Anti-collision Repulsion
+							if (distance > 0) {
+								factor =
+									(coefficient *
+										this._nodes.mass(n) *
+										this._nodes.mass(this._regions.node(r))) /
+									distance ** 2
+
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
+							} else if (distance < 0) {
+								factor =
+									(-coefficient *
+										this._nodes.mass(n) *
+										this._nodes.mass(this._regions.node(r))) /
+									distance
+
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
+							}
+						} else {
+							//-- Linear Repulsion
+							if (distance > 0) {
+								factor =
+									(coefficient *
+										this._nodes.mass(n) *
+										this._nodes.mass(this._regions.node(r))) /
+									distance ** 2
+
+								this._nodes.addDx(n, xDist * factor)
+								this._nodes.addDy(n, yDist * factor)
+							}
+						}
+					}
+
+					// When this is done, we iterate. We have to look at the next sibling.
+					if (this._regions.nextSibling(r) < 0) break // No next sibling: we have finished the tree
+					r = this._regions.nextSibling(r)
+					continue
 				}
 			}
-		} else {
-			let coefficient = this._config.scalingRatio
+		}
+	}
 
-			// Square iteration
-			for (let n1 = 0; n1 < this.nodesLength; n1 += ppn) {
-				for (let n2 = 0; n2 < n1; n2 += ppn) {
-					// Common to both methods
-					let xDist = this._nodes.x(n1) - this._nodes.x(n2)
-					let yDist = this._nodes.y(n1) - this._nodes.y(n2)
-					let factor
+	/**
+	 * O(n^2) repulsion - check force against all nodes
+	 */
+	private computeRepulsionUnoptimized() {
+		let coefficient = this._config.scalingRatio
+		let xDist, yDist, factor, distance, massCoeff
 
-					if (this._config.adjustSize) {
-						//-- Anticollision Linear Repulsion
-						let distance =
-							Math.sqrt(xDist * xDist + yDist * yDist) -
-							this._nodes.size(n1) -
-							this._nodes.size(n2)
+		// Square iteration
+		for (let n1 = 0; n1 < this.nodesLength; n1 += ppn) {
+			for (let n2 = 0; n2 < n1; n2 += ppn) {
+				// Common to both methods
+				xDist = this._nodes.x(n1) - this._nodes.x(n2)
+				yDist = this._nodes.y(n1) - this._nodes.y(n2)
+				massCoeff = coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)
 
-						if (distance > 0) {
-							factor =
-								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
-								distance /
-								distance
+				if (this._config.adjustSize) {
+					//-- Anticollision Linear Repulsion
+					distance =
+						Math.sqrt(xDist ** 2 + yDist ** 2) -
+						this._nodes.size(n1) -
+						this._nodes.size(n2)
 
-							// Updating nodes' dx and dy
-							this._nodes.addDx(n1, xDist * factor)
-							this._nodes.addDy(n1, yDist * factor)
-							this._nodes.addDx(n2, xDist * factor)
-							this._nodes.addDy(n2, yDist * factor)
-						} else if (distance < 0) {
-							factor =
-								100 * coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)
-
-							// Updating nodes' dx and dy
-							this._nodes.addDx(n1, xDist * factor)
-							this._nodes.addDy(n1, yDist * factor)
-
-							this._nodes.subDx(n2, xDist * factor)
-							this._nodes.subDy(n2, yDist * factor)
-						}
-					} else {
-						//-- Linear Repulsion
-						let distance = Math.sqrt(xDist * xDist + yDist * yDist)
-
-						if (distance > 0) {
-							factor =
-								(coefficient * this._nodes.mass(n1) * this._nodes.mass(n2)) /
-								distance /
-								distance
-
-							// Updating nodes' dx and dy
-							this._nodes.addDx(n1, xDist * factor)
-							this._nodes.addDy(n1, yDist * factor)
-
-							this._nodes.subDx(n2, xDist * factor)
-							this._nodes.subDy(n2, yDist * factor)
-						}
+					if (distance > 0) {
+						// Updating nodes' dx and dy
+						factor = massCoeff / distance ** 2
+						this._nodes.addDx(n1, xDist * factor)
+						this._nodes.addDy(n1, yDist * factor)
+						this._nodes.addDx(n2, xDist * factor)
+						this._nodes.addDy(n2, yDist * factor)
+					} else if (distance < 0) {
+						// Updating nodes' dx and dy
+						factor = 100 * massCoeff
+						this._nodes.addDx(n1, xDist * factor)
+						this._nodes.addDy(n1, yDist * factor)
+						this._nodes.subDx(n2, xDist * factor)
+						this._nodes.subDy(n2, yDist * factor)
+					}
+				} else {
+					//-- Linear Repulsion
+					distance = Math.sqrt(xDist ** 2 + yDist ** 2)
+					if (distance > 0) {
+						// Updating nodes' dx and dy
+						factor = massCoeff / distance ** 2
+						this._nodes.addDx(n1, xDist * factor)
+						this._nodes.addDy(n1, yDist * factor)
+						this._nodes.subDx(n2, xDist * factor)
+						this._nodes.subDy(n2, yDist * factor)
 					}
 				}
 			}
