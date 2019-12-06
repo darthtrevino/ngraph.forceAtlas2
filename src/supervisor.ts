@@ -223,17 +223,11 @@ export class Supervisor {
 	}
 
 	private sendDataToWorker(action?: string) {
-		const content: Record<string, any> = {
+		this.worker.postMessage({
 			action: action || 'loop',
 			nodes: this.nodesByteArray.buffer,
-		}
-
-		if (action === 'start') {
-			content.config = this.config || {}
-			content.edges = this.edgesByteArray.buffer
-		}
-
-		this.worker.postMessage(content)
+			edges: this.edgesByteArray.buffer,
+		})
 		this._pending = true
 	}
 }
