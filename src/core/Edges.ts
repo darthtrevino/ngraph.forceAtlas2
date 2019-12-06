@@ -7,13 +7,13 @@ export enum E {
 export const ppe = 3
 
 export class Edges {
-	private _ary: Uint32Array
+	private _ary: Float32Array
 
-	public constructor(ary: Uint32Array) {
+	public constructor(ary: Float32Array) {
 		this._ary = ary
 	}
 
-	public set array(ary: Uint32Array) {
+	public set array(ary: Float32Array) {
 		this._ary = ary
 	}
 
