@@ -1,4 +1,4 @@
-import { forceAtlas2 } from '../src/Layout'
+import { forceAtlas2 } from '../../src/Layout'
 import { Graph } from 'vivagraphjs'
 
 export function createLayout(fa2: boolean, graph: any) {

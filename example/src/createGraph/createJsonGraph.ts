@@ -1,5 +1,5 @@
 const createGraph = require('ngraph.graph')
-const yeast = require('./yeast.json')
+const yeast = require('../../data/yeast.json')
 
 export function createJsonGraph() {
 	let graph = createGraph()

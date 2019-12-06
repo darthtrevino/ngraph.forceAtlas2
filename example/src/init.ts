@@ -1,7 +1,6 @@
 import { Graph } from 'vivagraphjs'
 import { colors } from './colors'
-import { createRandomGraph } from './createRandomGraph'
-import { createJsonGraph } from './createJsonGraph'
+import { createRandomGraph, createJsonGraph } from './createGraph'
 import { createLayout } from './createLayout'
 
 export function init(
