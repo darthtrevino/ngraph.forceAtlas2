@@ -1,70 +1,45 @@
 import { Graph } from 'vivagraphjs'
-import { forceAtlas2 } from '../src/Layout'
 import { colors } from './colors'
-import * as agm from 'ngraph.agmgen'
-import * as _ from 'underscore'
+import { createRandomGraph } from './createRandomGraph'
+import { createJsonGraph } from './createJsonGraph'
+import { createLayout } from './createLayout'
 
-export function init(communities, nodesCount, bridgeCount, force2) {
-	communities = _.range(communities)
-	let nodes = []
-	let graph = Graph.graph()
+export function init(
+	communities: number,
+	nodesCount: number,
+	bridgeCount: number,
+	fa2: boolean,
+) {
+	const container = document.querySelector('#cont')
+	const [graph, nodes] = createRandomGraph(communities, nodesCount, bridgeCount)
+	// const [graph, nodes] = createJsonGraph()
+	console.log('using graph', graph)
 
-	console.time('build graph')
-	for (let i = 0, c; i < nodesCount; i++) {
-		c = _.random(communities.length - 1)
-		graph.addLink('n' + i, 'community' + c)
-		nodes[i] = c
-	}
-	for (let j = 0, n, cs; j < bridgeCount; j++) {
-		n = _.random(nodesCount - 1)
-		cs = _.difference(communities, [nodes[n]])
-		graph.addLink('n' + n, 'community' + cs[_.random(cs.length)])
-	}
-	console.time('build graphEnd')
+	const layout = createLayout(fa2, graph)
 
-	console.time('agm')
-	graph = agm(graph, {
-		coefficient: 0.3,
-		scale: 1,
+	const graphics = Graph.View.webglGraphics()
+	const drawSquare = Graph.View.webglSquare
+	const drawLine = Graph.View.webglLine
+
+	/**
+	 * Set up node rendering
+	 */
+	graphics.node(({ id, data }) => {
+		const size = (data && data.size) || DEFAULT_SIZE
+		const category = (data && data.category) || nodes[id.slice(1)]
+		return drawSquare(size, colors[category])
 	})
-	console.time('agm')
-
-	let layout
-	if (force2)
-		layout = forceAtlas2(graph, {
-			gravity: 1,
-			linLogMode: false,
-			strongGravityMode: false,
-			slowDown: 1,
-			outboundAttractionDistribution: false,
-			iterationsPerRender: 1,
-			barnesHutOptimize: false,
-			barnesHutTheta: 0.5,
-			worker: true,
-		})
-	else
-		layout = Graph.Layout.forceDirected(graph, {
-			springLength: 30,
-			springCoeff: 0.0008,
-			dragCoeff: 0.01,
-			gravity: -1.2,
-			theta: 1,
-		})
-
-	let graphics = Graph.View.webglGraphics(),
-		squareNode = Graph.View.webglSquare
-
-	graphics.node(function(node) {
-		return squareNode(15, colors[nodes[node.id.slice(1)]])
-	})
+	graphics.link(() => drawLine('#FFFFFF0C'))
 
 	let renderer = Graph.View.renderer(graph, {
 		renderLinks: false,
-		layout: layout,
-		graphics: graphics,
-		container: document.querySelector('#cont'),
+		layout,
+		graphics,
+		container,
 	})
 
 	renderer.run(Infinity)
 	return renderer
 }
+
+const DEFAULT_SIZE = 15
