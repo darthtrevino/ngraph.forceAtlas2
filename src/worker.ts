@@ -1,6 +1,6 @@
-import { FA2Algorithm } from './algorithm'
-import { Nodes } from './core/Nodes'
-import { Edges } from './core/Edges'
+import { FA2Algorithm } from './core/algorithm'
+import { Nodes } from './core/data_structures/Nodes'
+import { Edges } from './core/data_structures/Edges'
 
 let algorithm: FA2Algorithm
 

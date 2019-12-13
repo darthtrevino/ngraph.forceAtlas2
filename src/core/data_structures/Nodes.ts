@@ -127,4 +127,30 @@ export class Nodes {
 	public setFixed(index: number, value: boolean) {
 		this._ary[index + N.fixed] = value ? 1 : 0
 	}
+
+	public resetDeltas() {
+		// Resetting positions & computing max values
+		for (let n = 0; n < this.length; n += ppn) {
+			this.setOldDx(n, this.dx(n))
+			this.setOldDy(n, this.dy(n))
+			this.setDx(n, 0)
+		}
+	}
+
+	public getBounds(): [number, number, number, number] {
+		let minX = Infinity
+		let maxX = -Infinity
+		let minY = Infinity
+		let maxY = -Infinity
+
+		// Setting up
+		// Computing min and max values
+		for (let n = 0; n < this.length; n += ppn) {
+			minX = Math.min(minX, this.x(n))
+			maxX = Math.max(maxX, this.x(n))
+			minY = Math.min(minY, this.y(n))
+			maxY = Math.max(maxY, this.y(n))
+		}
+		return [minX, maxX, minY, maxY]
+	}
 }

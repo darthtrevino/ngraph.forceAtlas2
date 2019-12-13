@@ -1,7 +1,7 @@
-import { DEFAULT_CONFIGURATION, FA2Configuration } from './configuration'
-import { Nodes, ppn } from './core/nodes'
-import { Edges, ppe } from './core/edges'
-import { Regions, ppr } from './core/regions'
+import { DEFAULT_CONFIGURATION, FA2Configuration } from '../configuration'
+import { Edges, ppe, Nodes, ppn, Regions, ppr } from './data_structures'
+import { computeGravity } from './forces/computeGravity'
+
 const MAX_FORCE = 10
 
 export class FA2Algorithm {
@@ -62,6 +62,7 @@ export class FA2Algorithm {
 		this.resetDeltas()
 		this.prepareBarnesHutOptimization()
 		this.computeRepulsion()
+		computeGravity(this._nodes, this.configuration)
 		this.computeGravity()
 		this.computeAttraction()
 		this.applyForces()
@@ -423,20 +424,6 @@ export class FA2Algorithm {
 		}
 	}
 
-	private computeGravity() {
-		for (let n = 0; n < this.nodesLength; n += ppn) {
-			// Common to both methods
-			const xDist = this._nodes.x(n)
-			const yDist = this._nodes.y(n)
-			const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
-			const factor = this.getGravityFactor(n, distance)
-
-			// Updating node's dx and dy
-			this._nodes.subDx(n, xDist * factor)
-			this._nodes.subDy(n, yDist * factor)
-		}
-	}
-
 	private computeAttraction() {
 		const coefficient =
 			1 *
@@ -680,25 +667,6 @@ export class FA2Algorithm {
 		}
 	}
 
-	private getGravityFactor(n: number, distance: number) {
-		const coefficient = this._config.scalingRatio
-		const g = this._scaledGravity
-
-		let factor = 0
-		if (this._config.strongGravityMode) {
-			// strong gravity
-			if (distance > 0) {
-				factor = coefficient * this._nodes.mass(n) * g
-			}
-		} else {
-			// linear anti-collision repulsion
-			if (distance > 0) {
-				factor = (coefficient * this._nodes.mass(n) * g) / distance
-			}
-		}
-		return factor
-	}
-
 	private initRegion(
 		r: number,
 		centerX: number,
@@ -717,3 +685,54 @@ export class FA2Algorithm {
 		this._regions.setMassCenterY(r, 0)
 	}
 }
+
+// import { DEFAULT_CONFIGURATION, FA2Configuration } from '../configuration'
+// import { Regions, ppr, Edges, ppe, Nodes, ppn } from './data_structures'
+// import { iterate } from './forces'
+
+// export class FA2Algorithm {
+// 	private _config: FA2Configuration
+// 	private _iterations = 0
+// 	private _converged = false
+// 	private _nodes: Nodes
+// 	private _edges: Edges
+// 	private _regions: Regions = new Regions()
+
+// 	private _scaledGravity: number
+
+// 	public constructor(
+// 		nodes: Nodes,
+// 		edges: Edges,
+// 		config: Partial<FA2Configuration>,
+// 	) {
+// 		this.configure(config)
+// 		this._nodes = nodes
+// 		this._edges = edges
+// 	}
+
+// 	public configure(config: Partial<FA2Configuration>) {
+// 		this._config = { ...DEFAULT_CONFIGURATION, ...config }
+// 		this._scaledGravity = this._config.gravity / this._config.scalingRatio
+// 	}
+
+// 	public get configuration() {
+// 		return this._config
+// 	}
+
+// 	public set nodes(value: Float32Array) {
+// 		this._nodes.array = value
+// 	}
+
+// 	public get nodes(): Float32Array {
+// 		return this._nodes.array
+// 	}
+
+// 	public get iterations(): number {
+// 		return this._iterations
+// 	}
+
+// 	public pass() {
+// 		iterate(this._nodes, this._edges, this.configuration)
+// 		this._iterations++
+// 	}
+// }
