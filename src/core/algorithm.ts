@@ -1,8 +1,6 @@
 import { DEFAULT_CONFIGURATION, FA2Configuration } from '../configuration'
-import { Edges, Nodes, ppn, Regions } from './data_structures'
+import { Edges, Nodes } from './data_structures'
 import { iterate } from './forces'
-
-const MAX_FORCE = 10
 
 export class FA2Algorithm {
 	private _config: FA2Configuration
