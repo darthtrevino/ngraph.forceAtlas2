@@ -1,6 +1,6 @@
-import { Nodes, ppn } from '../data_structures/Nodes'
+import { Nodes } from '../data_structures/Nodes'
 import { Edges } from '../data_structures/Edges'
-import { FA2Configuration, DEFAULT_CONFIGURATION } from '../../configuration'
+import { FA2Configuration } from '../../configuration'
 import { prepareBarnesHutOptimization } from './prepareBarnesHutOptimization'
 import { computeRepulsionBarnesHut } from './computeRepulsionBarnesHut'
 import { computeRepulsion } from './computeRepulsion'
@@ -8,13 +8,7 @@ import { computeAttraction } from './computeAttraction'
 import { applyForces } from './applyForces'
 import { computeGravity } from './computeGravity'
 
-export function iterate(
-	nodes: Nodes,
-	edges: Edges,
-	_config: Partial<FA2Configuration>,
-) {
-	const config: FA2Configuration = { ...DEFAULT_CONFIGURATION, ..._config }
-
+export function iterate(nodes: Nodes, edges: Edges, config: FA2Configuration) {
 	nodes.resetDeltas()
 	if (config.barnesHutOptimize) {
 		const regions = prepareBarnesHutOptimization(nodes)

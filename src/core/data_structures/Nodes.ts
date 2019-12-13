@@ -134,6 +134,7 @@ export class Nodes {
 			this.setOldDx(n, this.dx(n))
 			this.setOldDy(n, this.dy(n))
 			this.setDx(n, 0)
+			this.setDy(n, 0)
 		}
 	}
 
