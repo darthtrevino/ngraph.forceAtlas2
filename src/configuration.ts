@@ -12,6 +12,7 @@ export interface FA2Configuration {
 	barnesHutTheta: number
 	startingIterations: number
 	iterationsPerRender: number
+	maxForce: number
 }
 
 export const DEFAULT_CONFIGURATION: FA2Configuration = {
@@ -28,4 +29,5 @@ export const DEFAULT_CONFIGURATION: FA2Configuration = {
 	barnesHutTheta: 0.5,
 	startingIterations: 1,
 	iterationsPerRender: 1,
+	maxForce: 10,
 }
