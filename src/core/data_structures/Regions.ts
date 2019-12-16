@@ -108,4 +108,65 @@ export class Regions {
 	public setMassCenterY(n: number, value: number) {
 		this._ary[n + R.massCenterY] = value
 	}
+
+	public addNodeMassToRegion(
+		r: number,
+		nodeCenterX: number,
+		nodeCenterY: number,
+		nodeMass: number,
+	) {
+		// Update center of mass and mass (we only do it for non-leaf regions)
+		const regionMass = this.mass(r)
+		this.setMassCenterX(
+			r,
+			(this.massCenterX(r) * regionMass + nodeCenterX * nodeMass) /
+				(regionMass + nodeMass),
+		)
+		this.setMassCenterY(
+			r,
+			(this.massCenterY(r) * regionMass + nodeCenterY * nodeMass) /
+				(regionMass + nodeMass),
+		)
+
+		this.addMass(r, nodeMass)
+	}
+
+	public getRegionQuadrant(r: number, queryX: number, queryY: number) {
+		// Find the quadrant of n
+		if (queryX < this.centerX(r)) {
+			if (queryY < this.centerY(r)) {
+				// Top Left quarter
+				return this.firstChild(r)
+			} else {
+				// Bottom Left quarter
+				return this.firstChild(r) + ppr
+			}
+		} else {
+			if (queryY < this.centerY(r)) {
+				// Top Right quarter
+				return this.firstChild(r) + ppr * 2
+			} else {
+				// Bottom Right quarter
+				return this.firstChild(r) + ppr * 3
+			}
+		}
+	}
+
+	public initRegion(
+		r: number,
+		centerX: number,
+		centerY: number,
+		size: number,
+		nextSibling: number = -1,
+	) {
+		this.setNextSibling(r, nextSibling)
+		this.setCenterX(r, centerX)
+		this.setCenterY(r, centerY)
+		this.setSize(r, size)
+		this.setFirstChild(r, -1)
+		this.setNode(r, -1)
+		this.setMass(r, 0)
+		this.setMassCenterX(r, 0)
+		this.setMassCenterY(r, 0)
+	}
 }

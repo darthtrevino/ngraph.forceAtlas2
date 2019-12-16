@@ -32,6 +32,10 @@ export class Nodes {
 		return this._ary.length
 	}
 
+	public get numNodes() {
+		return this.length / ppn
+	}
+
 	public x(index: number): number {
 		return this._ary[index + N.x]
 	}
