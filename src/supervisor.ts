@@ -1,6 +1,5 @@
 import { Rect } from './Rect'
-import { ppe } from './core/data_structures/Edges'
-import { ppn } from './core/data_structures/Nodes'
+import { ppe, ppn } from './core/marshaling'
 
 // @ts-ignore
 import workerScript from 'raw-loader!!../dist/fa2_worker.js'

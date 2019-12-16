@@ -13,7 +13,7 @@ export enum N {
 
 export const ppn = 10
 
-export class Nodes {
+export class NodeStore {
 	private _ary: Float32Array
 
 	public constructor(ary: Float32Array) {

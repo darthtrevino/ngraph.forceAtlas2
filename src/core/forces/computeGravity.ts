@@ -1,7 +1,7 @@
-import { Nodes, ppn } from '../data_structures'
+import { NodeStore, ppn } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
-export function computeGravity(nodes: Nodes, config: FA2Configuration) {
+export function computeGravity(nodes: NodeStore, config: FA2Configuration) {
 	for (let n = 0; n < nodes.length; n += ppn) {
 		// Common to both methods
 		const xDist = nodes.x(n)
@@ -16,7 +16,7 @@ export function computeGravity(nodes: Nodes, config: FA2Configuration) {
 }
 
 function getGravityFactor(
-	nodes: Nodes,
+	nodes: NodeStore,
 	n: number,
 	distance: number,
 	config: FA2Configuration,

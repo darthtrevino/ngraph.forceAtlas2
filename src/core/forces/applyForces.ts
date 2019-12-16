@@ -1,7 +1,7 @@
-import { ppn, Nodes } from '../data_structures'
+import { ppn, NodeStore } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
-export function applyForces(nodes: Nodes, config: FA2Configuration) {
+export function applyForces(nodes: NodeStore, config: FA2Configuration) {
 	let force, swinging, traction, nodespeed
 
 	// MATH: sqrt and square distances

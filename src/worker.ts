@@ -1,6 +1,5 @@
 import { FA2Algorithm } from './core/algorithm'
-import { Nodes } from './core/data_structures/Nodes'
-import { Edges } from './core/data_structures/Edges'
+import { NodeStore, EdgeStore } from './core/marshaling'
 
 let algorithm: FA2Algorithm
 
@@ -28,8 +27,8 @@ var listener = function(e) {
 	switch (e.data.action) {
 		case 'start':
 			algorithm = new FA2Algorithm(
-				new Nodes(new Float32Array(e.data.nodes)),
-				new Edges(new Float32Array(e.data.edges)),
+				new NodeStore(new Float32Array(e.data.nodes)),
+				new EdgeStore(new Float32Array(e.data.edges)),
 				e.data.config,
 			)
 			// First iteration(s)

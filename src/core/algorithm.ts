@@ -1,16 +1,16 @@
 import { DEFAULT_CONFIGURATION, FA2Configuration } from '../configuration'
-import { Edges, Nodes } from './data_structures'
+import { EdgeStore, NodeStore } from './marshaling'
 import { iterate } from './forces'
 
 export class FA2Algorithm {
 	private _config: FA2Configuration
 	private _iterations = 0
-	private _nodes: Nodes
-	private _edges: Edges
+	private _nodes: NodeStore
+	private _edges: EdgeStore
 
 	public constructor(
-		nodes: Nodes,
-		edges: Edges,
+		nodes: NodeStore,
+		edges: EdgeStore,
 		config: Partial<FA2Configuration>,
 	) {
 		this.configure(config)

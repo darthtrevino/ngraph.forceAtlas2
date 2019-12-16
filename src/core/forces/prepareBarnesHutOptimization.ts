@@ -1,9 +1,9 @@
-import { ppn, ppr, Regions, Nodes } from '../data_structures'
+import { ppn, ppr, RegionStore, NodeStore } from '../marshaling'
 
-export function prepareBarnesHutOptimization(nodes: Nodes): Regions {
+export function prepareBarnesHutOptimization(nodes: NodeStore): RegionStore {
 	// 1.bis) Barnes-Hut computation
 	//------------------------------
-	const regions = new Regions(new Array(nodes.numNodes * 4 * ppr))
+	const regions = new RegionStore(new Array(nodes.numNodes * 4 * ppr))
 
 	// Set up the root quad-tree region
 	const [minX, maxX, minY, maxY] = nodes.getBounds()
@@ -21,7 +21,7 @@ export function prepareBarnesHutOptimization(nodes: Nodes): Regions {
 	return regions
 }
 
-function insertNode(n: number, nodes: Nodes, regions: Regions) {
+function insertNode(n: number, nodes: NodeStore, regions: RegionStore) {
 	let l = 1
 	// Current region, starting with root
 	let r = 0
@@ -146,8 +146,8 @@ function insertNode(n: number, nodes: Nodes, regions: Regions) {
 }
 
 function getQuadrantOfNodeInRegion(
-	nodes: Nodes,
-	regions: Regions,
+	nodes: NodeStore,
+	regions: RegionStore,
 	n: number,
 	r: number,
 ): number {

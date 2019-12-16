@@ -14,7 +14,7 @@ export const ppr = 9
 
 // This is not shared with any worker context, so the buffers
 // do not need to be shared-memory buffers.
-export class Regions {
+export class RegionStore {
 	private _ary: number[]
 
 	public constructor(ary: number[] = []) {

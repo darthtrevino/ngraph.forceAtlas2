@@ -1,11 +1,11 @@
-import { ppn, Nodes } from '../data_structures'
+import { ppn, NodeStore } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 /**
  * O(n^2) repulsion - check force against all nodes
  */
 export function computeRepulsionUnoptimized(
-	nodes: Nodes,
+	nodes: NodeStore,
 	config: FA2Configuration,
 ) {
 	let coefficient = config.scalingRatio

@@ -1,9 +1,9 @@
-import { Nodes, Edges, ppe, ppn } from '../data_structures'
+import { NodeStore, EdgeStore, ppe, ppn } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 export function computeAttraction(
-	nodes: Nodes,
-	edges: Edges,
+	nodes: NodeStore,
+	edges: EdgeStore,
 	config: FA2Configuration,
 ) {
 	const coefficient =
@@ -105,7 +105,10 @@ export function computeAttraction(
 	}
 }
 
-function getOutboundAttCompensation(nodes: Nodes, config: FA2Configuration) {
+function getOutboundAttCompensation(
+	nodes: NodeStore,
+	config: FA2Configuration,
+) {
 	let outboundAttCompensation = 0
 	// If outbound attraction distribution, compensate
 	if (config.outboundAttractionDistribution) {

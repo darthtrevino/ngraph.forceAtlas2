@@ -1,12 +1,16 @@
-import { Nodes } from '../data_structures/Nodes'
-import { Edges } from '../data_structures/Edges'
+import { NodeStore } from '../marshaling/NodeStore'
+import { EdgeStore } from '../marshaling/EdgeStore'
 import { FA2Configuration } from '../../configuration'
 import { computeAttraction } from './computeAttraction'
 import { applyForces } from './applyForces'
 import { computeGravity } from './computeGravity'
 import { computeRepulsion } from './computeRepulsion'
 
-export function iterate(nodes: Nodes, edges: Edges, config: FA2Configuration) {
+export function iterate(
+	nodes: NodeStore,
+	edges: EdgeStore,
+	config: FA2Configuration,
+) {
 	nodes.resetDeltas()
 
 	// Compute Forces

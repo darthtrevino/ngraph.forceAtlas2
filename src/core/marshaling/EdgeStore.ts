@@ -6,7 +6,7 @@ export enum E {
 
 export const ppe = 3
 
-export class Edges {
+export class EdgeStore {
 	private _ary: Float32Array
 
 	public constructor(ary: Float32Array) {

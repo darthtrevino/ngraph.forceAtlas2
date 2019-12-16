@@ -1,9 +1,9 @@
-import { Nodes, ppn, Regions } from '../data_structures'
+import { NodeStore, ppn, RegionStore } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 export function computeRepulsionBarnesHut(
-	nodes: Nodes,
-	regions: Regions,
+	nodes: NodeStore,
+	regions: RegionStore,
 	config: FA2Configuration,
 ) {
 	let coefficient = config.scalingRatio
