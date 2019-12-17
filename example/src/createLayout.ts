@@ -1,7 +1,7 @@
 import { forceAtlas2 } from '../../src/Layout'
 import { Graph } from 'vivagraphjs'
 
-export function createLayout(fa2: boolean, graph: any) {
+export function createLayout(graph: any, fa2: boolean, barnesHut: any) {
 	if (fa2) {
 		console.log('using forceatlas2 layout')
 		return forceAtlas2(graph, {
@@ -11,10 +11,9 @@ export function createLayout(fa2: boolean, graph: any) {
 			slowDown: 1,
 			outboundAttractionDistribution: false,
 			iterationsPerRender: 1,
-			barnesHutOptimize: false,
-			barnesHutTheta: 2,
-			worker: true,
-		})
+			barnesHutOptimize: barnesHut,
+			barnesHutTheta: 1.5,
+		} as any)
 	} else {
 		console.log('using built-in force-directed')
 		return Graph.Layout.forceDirected(graph, {

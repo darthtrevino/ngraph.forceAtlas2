@@ -4,4 +4,5 @@ export interface ExecuteLayoutOptions {
 	numBridges: number
 	useFa2: boolean
 	useRandomGraph: boolean
+	useBarnesHut: boolean
 }

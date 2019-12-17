@@ -2,6 +2,7 @@ import { random } from 'ngraph.random'
 import * as centrality from 'ngraph.centrality'
 import { Supervisor } from './supervisor'
 import { Rect } from './Rect'
+import { FA2Configuration } from './configuration'
 
 export interface UserSettings {
 	maxX: number
@@ -26,7 +27,7 @@ const DEFAULT_USER_SETTINGS: UserSettings = {
  */
 export function forceAtlas2(
 	graph,
-	config,
+	config: Partial<FA2Configuration>,
 	userSettings: Partial<UserSettings> = {},
 ) {
 	userSettings = {

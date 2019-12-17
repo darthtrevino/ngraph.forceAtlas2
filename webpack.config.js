@@ -6,12 +6,6 @@ module.exports = {
 	output: {
 		filename: './index.js',
 	},
-	devServer: {
-		hot: false,
-		hotOnly: false,
-		inline: false,
-		liveReload: false,
-	},
 	resolve: {
 		extensions: ['.ts', '.tsx', '.js'],
 	},

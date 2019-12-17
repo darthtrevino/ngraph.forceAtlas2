@@ -12,6 +12,7 @@ export function executeLayout(
 		numBridges,
 		useFa2,
 		useRandomGraph,
+		useBarnesHut,
 	}: ExecuteLayoutOptions,
 ) {
 	console.log(
@@ -24,7 +25,7 @@ export function executeLayout(
 	const [graph, nodes] = useRandomGraph
 		? createRandomGraph(numCommunities, numNodes, numBridges)
 		: createJsonGraph()
-	const layout = createLayout(useFa2, graph)
+	const layout = createLayout(graph, useFa2, useBarnesHut)
 
 	const graphics = Graph.View.webglGraphics()
 	const drawSquare = Graph.View.webglSquare

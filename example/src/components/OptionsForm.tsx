@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { memo, useMemo, useCallback, useState } from 'react'
+import { memo, useMemo, useCallback } from 'react'
 import { ExecuteLayoutOptions } from '../types'
 
 export interface OptionsFormProps {
@@ -7,7 +7,6 @@ export interface OptionsFormProps {
 }
 
 export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
-	const [useRandomGraph, setUseRandomGraph] = useState(true)
 	const options = useMemo<ExecuteLayoutOptions>(
 		() => ({
 			numCommunities: 5,
@@ -15,6 +14,7 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 			numBridges: 100,
 			useFa2: true,
 			useRandomGraph: true,
+			useBarnesHut: false,
 		}),
 		[],
 	)
@@ -49,8 +49,13 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 	const onUseRandomGraphChanged = useCallback(
 		(ev: React.ChangeEvent<HTMLInputElement>) => {
 			options.useRandomGraph = ev.target.checked
-			// trigger a re-render
-			setUseRandomGraph(options.useRandomGraph)
+		},
+		[options],
+	)
+
+	const onUseBHCHanged = useCallback(
+		(ev: React.ChangeEvent<HTMLInputElement>) => {
+			options.useBarnesHut = ev.target.checked
 		},
 		[options],
 	)
@@ -70,31 +75,37 @@ export const OptionsForm: React.FC<OptionsFormProps> = memo(({ onClick }) => {
 				defaultChecked={true}
 				onChange={onUseFa2Changed}
 			/>
-			{options.useRandomGraph ? (
-				<>
-					<label htmlFor="communities">communities </label>
-					<input
-						id="communities"
-						type="text"
-						defaultValue={options.numCommunities}
-						onChange={onNumCommunitiesChanged}
-					/>
-					<label htmlFor="nodesCount">nodesCount</label>
-					<input
-						id="nodesCount"
-						type="text"
-						defaultValue={options.numNodes}
-						onChange={onNumNodesChanged}
-					/>
-					<label htmlFor="bridgeCount">bridgeCount</label>
-					<input
-						id="bridgeCount"
-						type="text"
-						defaultValue={options.numBridges}
-						onChange={onNumBridgesChanged}
-					/>
-				</>
-			) : null}
+			<label htmlFor="force">use bh</label>
+			<input
+				type="checkbox"
+				id="force"
+				defaultChecked={false}
+				onChange={onUseBHCHanged}
+			/>
+			<label htmlFor="communities">communities </label>
+			<input
+				id="communities"
+				type="text"
+				disabled={!options.useRandomGraph}
+				defaultValue={options.numCommunities}
+				onChange={onNumCommunitiesChanged}
+			/>
+			<label htmlFor="nodesCount">nodesCount</label>
+			<input
+				id="nodesCount"
+				type="text"
+				disabled={!options.useRandomGraph}
+				defaultValue={options.numNodes}
+				onChange={onNumNodesChanged}
+			/>
+			<label htmlFor="bridgeCount">bridgeCount</label>
+			<input
+				id="bridgeCount"
+				type="text"
+				disabled={!options.useRandomGraph}
+				defaultValue={options.numBridges}
+				onChange={onNumBridgesChanged}
+			/>
 			<button onClick={handleOnClick}>Execute Layout</button>
 		</div>
 	)
