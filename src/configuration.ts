@@ -26,7 +26,7 @@ export const DEFAULT_CONFIGURATION: FA2Configuration = {
 	gravity: 1,
 	slowDown: 1,
 	barnesHutOptimize: true,
-	barnesHutTheta: 0.5,
+	barnesHutTheta: 1.2,
 	startingIterations: 1,
 	iterationsPerRender: 1,
 	maxForce: 10,

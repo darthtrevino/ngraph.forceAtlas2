@@ -6,10 +6,14 @@
 	"directories": {
 		"example": "example"
 	},
-	"dependencies": {},
+	"dependencies": {
+		"rbush": "^3.0.1"
+	},
 	"devDependencies": {
+		"@types/jest": "^24.0.23",
 		"@types/react": "^16.9.15",
 		"@types/react-dom": "^16.9.4",
+		"d3-force": "^2.0.1",
 		"html-webpack-plugin": "^3.2.0",
 		"husky": "^3.1.0",
 		"jest": "^24.9.0",

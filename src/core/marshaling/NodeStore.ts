@@ -151,10 +151,12 @@ export class NodeStore {
 		// Setting up
 		// Computing min and max values
 		for (let n = 0; n < this.length; n += ppn) {
-			minX = Math.min(minX, this.x(n))
-			maxX = Math.max(maxX, this.x(n))
-			minY = Math.min(minY, this.y(n))
-			maxY = Math.max(maxY, this.y(n))
+			const x = this.x(n)
+			const y = this.y(n)
+			minX = Math.min(minX, x)
+			maxX = Math.max(maxX, x)
+			minY = Math.min(minY, y)
+			maxY = Math.max(maxY, y)
 		}
 		return [minX, maxX, minY, maxY]
 	}

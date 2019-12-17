@@ -12,7 +12,7 @@ export function createLayout(fa2: boolean, graph: any) {
 			outboundAttractionDistribution: false,
 			iterationsPerRender: 1,
 			barnesHutOptimize: false,
-			barnesHutTheta: 0.5,
+			barnesHutTheta: 2,
 			worker: true,
 		})
 	} else {

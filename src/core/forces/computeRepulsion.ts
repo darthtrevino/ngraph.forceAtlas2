@@ -6,8 +6,8 @@ import { computeRepulsionUnoptimized } from './computeRepulsionUnoptimized'
 
 export function computeRepulsion(nodes: NodeStore, config: FA2Configuration) {
 	if (config.barnesHutOptimize) {
-		const regions = prepareBarnesHutOptimization(nodes)
-		computeRepulsionBarnesHut(nodes, regions, config)
+		const qt = prepareBarnesHutOptimization(nodes)
+		computeRepulsionBarnesHut(nodes, qt, config)
 	} else {
 		computeRepulsionUnoptimized(nodes, config)
 	}
