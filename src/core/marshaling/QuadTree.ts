@@ -181,4 +181,15 @@ export class QuadTree {
 			}
 		}
 	}
+
+	public visit(callback: (qt: QuadTree) => boolean) {
+		const queue: QuadTree[] = [this]
+		while (queue.length > 0) {
+			const qt = queue.pop()
+			const halt = callback(qt)
+			if (!halt) {
+				queue.push(qt.nwChild, qt.neChild, qt.swChild, qt.seChild)
+			}
+		}
+	}
 }

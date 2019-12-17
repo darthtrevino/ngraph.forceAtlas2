@@ -1,7 +1,7 @@
-import { NodeStore } from '../marshaling'
-import { FA2Configuration } from '../../configuration'
+import { NodeStore } from '../../marshaling'
+import { FA2Configuration } from '../../../configuration'
 
-export function applyNodeRepulsion(
+export function computeNodeRepulsion(
 	config: FA2Configuration,
 	nodes: NodeStore,
 	n1: number,

@@ -1,6 +1,6 @@
 import { prepareBarnesHutOptimization } from './prepareBarnesHutOptimization'
-import { FA2Configuration } from '../../configuration'
-import { NodeStore } from '../marshaling'
+import { FA2Configuration } from '../../../configuration'
+import { NodeStore } from '../../marshaling'
 import { computeRepulsionBarnesHut } from './computeRepulsionBarnesHut'
 import { computeRepulsionUnoptimized } from './computeRepulsionUnoptimized'
 

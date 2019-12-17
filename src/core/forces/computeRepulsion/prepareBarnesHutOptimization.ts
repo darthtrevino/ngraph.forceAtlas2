@@ -1,4 +1,4 @@
-import { ppn, QuadTree, NodeStore } from '../marshaling'
+import { ppn, QuadTree, NodeStore } from '../../marshaling'
 
 export function prepareBarnesHutOptimization(nodes: NodeStore): QuadTree {
 	// Set up the root quad-tree region

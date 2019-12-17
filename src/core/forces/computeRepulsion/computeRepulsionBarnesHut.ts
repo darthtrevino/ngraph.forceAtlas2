@@ -1,6 +1,7 @@
-import { NodeStore, ppn, QuadTree } from '../marshaling'
-import { FA2Configuration } from '../../configuration'
-import { applyNodeRepulsion } from './applyNodeRepulsion'
+import { NodeStore, ppn, QuadTree } from '../../marshaling'
+import { FA2Configuration } from '../../../configuration'
+import { computeNodeRepulsion } from './computeNodeRepulsion'
+import { jiggle, jiggleIfZero } from '../helpers/jiggle'
 
 export function computeRepulsionBarnesHut(
 	nodes: NodeStore,
@@ -13,21 +14,25 @@ export function computeRepulsionBarnesHut(
 }
 
 function applyQuadTreeRepulsion(
-	qt: QuadTree,
+	root: QuadTree,
 	nodes: NodeStore,
 	n1: number,
 	config: FA2Configuration,
 ) {
-	if (qt.isLeaf) {
-		applyNodeRepulsion(config, nodes, n1, qt.node)
-	} else {
+	root.visit(qt => {
+		if (qt.isLeaf) {
+			computeNodeRepulsion(config, nodes, n1, qt.node)
+			return true
+		}
 		const xDist = nodes.x(n1) - qt.centerOfMassX
 		const yDist = nodes.y(n1) - qt.centerOfMassY
-		const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
+		const distance = jiggleIfZero(Math.sqrt(xDist ** 2 + yDist ** 2))
+		const applyQuadForce = qt.size / distance < config.barnesHutTheta
 
-		if (qt.size / distance < config.barnesHutTheta) {
+		if (applyQuadForce) {
 			const coefficient = config.scalingRatio
 			const massCoeff = coefficient * nodes.mass(n1) * qt.mass
+
 			//-- Linear Repulsion
 			if (distance > 0) {
 				// Updating nodes' dx and dy
@@ -37,11 +42,8 @@ function applyQuadTreeRepulsion(
 			} else {
 				console.log('Zero Distance 3')
 			}
-		} else {
-			applyQuadTreeRepulsion(qt.nwChild, nodes, n1, config)
-			applyQuadTreeRepulsion(qt.neChild, nodes, n1, config)
-			applyQuadTreeRepulsion(qt.swChild, nodes, n1, config)
-			applyQuadTreeRepulsion(qt.seChild, nodes, n1, config)
 		}
-	}
+
+		return applyQuadForce
+	})
 }

@@ -1,4 +1,4 @@
-import { prepareBarnesHutOptimization } from '../prepareBarnesHutOptimization'
+import { prepareBarnesHutOptimization } from '../computeRepulsion/prepareBarnesHutOptimization'
 import { NodeStore } from '../../marshaling'
 
 describe('prepareBarnesHutOptimization', () => {
