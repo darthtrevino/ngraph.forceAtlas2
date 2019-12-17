@@ -5,6 +5,7 @@ import { computeAttraction } from './computeAttraction'
 import { applyForces } from './applyForces'
 import { computeGravity } from './computeGravity'
 import { computeRepulsion } from './computeRepulsion'
+import { computeCollisions } from './computeCollisions'
 
 export function iterate(
 	nodes: NodeStore,
@@ -17,6 +18,7 @@ export function iterate(
 	computeRepulsion(nodes, config)
 	computeGravity(nodes, config)
 	computeAttraction(nodes, edges, config)
+	computeCollisions(nodes, config)
 
 	applyForces(nodes, config)
 }

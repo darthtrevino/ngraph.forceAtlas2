@@ -142,7 +142,7 @@ export class NodeStore {
 		}
 	}
 
-	public getBounds(): [number, number, number, number] {
+	public getBounds(useDelta = false): [number, number, number, number] {
 		let minX = Infinity
 		let maxX = -Infinity
 		let minY = Infinity
@@ -151,8 +151,8 @@ export class NodeStore {
 		// Setting up
 		// Computing min and max values
 		for (let n = 0; n < this.length; n += ppn) {
-			const x = this.x(n)
-			const y = this.y(n)
+			const x = this.x(n) + (useDelta ? this.dx(n) : 0)
+			const y = this.y(n) + (useDelta ? this.dy(n) : 0)
 			minX = Math.min(minX, x)
 			maxX = Math.max(maxX, x)
 			minY = Math.min(minY, y)

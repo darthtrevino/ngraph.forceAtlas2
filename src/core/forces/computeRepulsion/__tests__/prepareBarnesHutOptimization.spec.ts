@@ -1,10 +1,10 @@
-import { prepareBarnesHutOptimization } from '../computeRepulsion/prepareBarnesHutOptimization'
-import { NodeStore } from '../../marshaling'
+import { createQuadTree } from '../computeRepulsionBarnesHut'
+import { NodeStore } from '../../../marshaling'
 
-describe('prepareBarnesHutOptimization', () => {
+describe('createQuadTree', () => {
 	it('sets up an empty root quadtree if no nodes are present', () => {
 		const nodes = new NodeStore(new Float32Array())
-		const qt = prepareBarnesHutOptimization(nodes)
+		const qt = createQuadTree(nodes)
 		expect(qt).toBeDefined()
 
 		// Dimensions are invalid with no nodes
@@ -18,7 +18,7 @@ describe('prepareBarnesHutOptimization', () => {
       // Node @ (5,5)
       5, 5, 0, 0, 0, 0, 1, 0, 0, 0,
     ]))
-		const qt = prepareBarnesHutOptimization(nodes)
+		const qt = createQuadTree(nodes)
 		expect(qt).toBeDefined()
 		expect(qt.width).toEqual(0)
 		expect(qt.height).toEqual(0)
@@ -39,7 +39,7 @@ describe('prepareBarnesHutOptimization', () => {
       // Node @ (0,0)
       0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
     ]))
-		const qt = prepareBarnesHutOptimization(nodes)
+		const qt = createQuadTree(nodes)
 		expect(qt).toBeDefined()
 		expect(qt.width).toEqual(5)
 		expect(qt.height).toEqual(5)

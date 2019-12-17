@@ -19,6 +19,11 @@ export class QuadTree {
 	public width: number
 	public height: number
 
+	public x0: number
+	public x1: number
+	public y0: number
+	public y1: number
+
 	public constructor(
 		width: number,
 		height: number,
@@ -30,6 +35,10 @@ export class QuadTree {
 		this.centerX = this.centerOfMassX = centerX
 		this.centerY = this.centerOfMassY = centerY
 		this.mass = 0
+		this.x0 = this.centerX - width / 2
+		this.x1 = this.centerX + width / 2
+		this.y0 = this.centerY - height / 2
+		this.y1 = this.centerY + height / 2
 	}
 
 	public get size() {
@@ -188,7 +197,9 @@ export class QuadTree {
 			const qt = queue.pop()
 			const halt = callback(qt)
 			if (!halt) {
-				queue.push(qt.nwChild, qt.neChild, qt.swChild, qt.seChild)
+				if (!qt.isLeaf) {
+					queue.push(qt.nwChild, qt.neChild, qt.swChild, qt.seChild)
+				}
 			}
 		}
 	}
