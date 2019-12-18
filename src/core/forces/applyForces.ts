@@ -1,91 +1,88 @@
-import { ppn, NodeStore } from '../marshaling'
+import { NodeStore, Node } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 export function applyForces(
 	nodes: NodeStore,
 	config: FA2Configuration,
-): number {
+): [
+	// total tension
+	number,
+	// total swing
+	number,
+	// total traction
+	number,
+] {
 	let force, swinging, traction, nodespeed
-	let tension: number = 0
+	let totalTension: number = 0
+	let totalSwing: number = 0
+	let totalTraction: number = 0
+	let node: Node
+	let forceScale: number
 
 	// MATH: sqrt and square distances
-	for (let n = 0; n < nodes.length; n += ppn) {
-		if (!nodes.fixed(n)) {
-			force = getNodeForce(nodes, n)
-			tension += force
+	for (let n = 0; n < nodes.nodeCount; n++) {
+		node = nodes.getNode(n)
+		if (!node.fixed) {
+			force = node.force
+			swinging = node.swing
+			traction = node.traction
+
+			// track global metrics
+			totalTension += force
+			totalSwing += swinging
+			totalTraction += traction
 
 			if (config.adjustSizes) {
 				if (force > config.maxForce) {
-					nodes.setDx(n, (nodes.dx(n) * config.maxForce) / force)
-					nodes.setDy(n, (nodes.dy(n) * config.maxForce) / force)
+					forceScale = config.maxForce / force
+					node.dx *= forceScale
+					node.dy *= forceScale
 				}
-				swinging = getNodeSwing(nodes, n)
-				traction = getNodeTraction(nodes, n)
-				nodespeed = getNodeSpeed(traction, swinging, 0.1)
+				nodespeed = getNodeSpeed(0.1, traction, swinging)
 			} else {
-				swinging = getNodeSwing(nodes, n)
-				traction = getNodeTraction(nodes, n)
-				nodespeed = getNodeSpeed(traction, swinging, nodes.convergence(n))
+				nodespeed = getNodeSpeed(node.convergence, traction, swinging)
 				// Updating node convergence
-				nodes.setConvergence(
-					n,
-					getNodeConvergence(nodes, n, swinging, nodespeed),
-				)
+				node.convergence = getNodeConvergence(node, swinging, nodespeed)
 			}
 
-			moveNode(nodes, n, nodespeed / config.slowDown)
+			if (Number.isNaN(nodespeed)) {
+				console.log(
+					'WTF',
+					nodespeed,
+					force,
+					swinging,
+					traction,
+					node.convergence,
+				)
+			}
+			moveNode(node, nodespeed / config.slowDown)
 		}
 	}
-	return tension
-}
-
-function getNodeForce(nodes: NodeStore, n: number): number {
-	return Math.sqrt(nodes.dx(n) ** 2 + nodes.dy(n) ** 2)
-}
-
-function getNodeSwing(nodes: NodeStore, n: number): number {
-	return (
-		nodes.mass(n) *
-		Math.sqrt(
-			(nodes.old_dx(n) - nodes.dx(n)) ** 2 +
-				(nodes.old_dy(n) - nodes.dy(n)) ** 2,
-		)
-	)
-}
-
-function getNodeTraction(nodes: NodeStore, n: number): number {
-	return (
-		Math.sqrt(
-			(nodes.old_dx(n) + nodes.dx(n)) ** 2 +
-				(nodes.old_dy(n) + nodes.dy(n)) ** 2,
-		) / 2
-	)
+	return [totalTension, totalSwing, totalTraction]
 }
 
 function getNodeConvergence(
-	nodes: NodeStore,
-	n: number,
+	node: Node,
 	swinging: number,
 	speed: number,
 ): number {
 	return Math.min(
 		1,
 		Math.sqrt(
-			(speed * (nodes.dx(n) ** 2 + nodes.dy(n) ** 2)) /
-				(1 + Math.sqrt(swinging)),
+			(speed * (node.dx ** 2 + node.dy ** 2)) / (1 + Math.sqrt(swinging)),
 		),
 	)
 }
 
 function getNodeSpeed(
+	convergence: number,
 	traction: number,
 	swinging: number,
-	convergence: number,
 ): number {
 	return (convergence * Math.log(1 + traction)) / (1 + Math.sqrt(swinging))
 }
 
-function moveNode(nodes: NodeStore, n: number, factor: number): void {
-	nodes.setX(n, nodes.x(n) + nodes.dx(n) * factor)
-	nodes.setY(n, nodes.y(n) + nodes.dy(n) * factor)
+function moveNode(node: Node, factor: number): void {
+	node.x += node.dx * factor
+	node.y += node.dy * factor
 }

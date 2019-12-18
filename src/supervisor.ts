@@ -1,5 +1,5 @@
 import { Rect } from './Rect'
-import { ppe, ppn } from './core/marshaling'
+import { ppe, ppn, NodeStore, Node, EdgeStore, Edge } from './core/marshaling'
 
 // @ts-ignore
 import workerScript from 'raw-loader!!../dist/fa2_worker.js'
@@ -32,8 +32,8 @@ export class Supervisor {
 		Number.MIN_VALUE,
 	)
 	private config: FA2Configuration
-	private nodesByteArray: Float32Array
-	private edgesByteArray: Float32Array
+	private _nodes: NodeStore
+	private _edges: EdgeStore
 
 	public constructor(graph, config: Partial<FA2Configuration>) {
 		this.graph = graph
@@ -45,6 +45,12 @@ export class Supervisor {
 		this.configure(config)
 
 		// Filling byteArrays
+		this._nodes = new NodeStore(
+			new Float32Array(new SharedArrayBuffer(4 * ppn * graph.nodes.length)),
+		)
+		this._edges = new EdgeStore(
+			new Float32Array(new SharedArrayBuffer(4 * ppe * graph.edges.length)),
+		)
 		this.packGraphBuffers()
 	}
 
@@ -118,74 +124,66 @@ export class Supervisor {
 
 	private packGraphBuffers() {
 		const { nodes, edges } = this.graph
-		const nbytes = nodes.length * ppn * 4
-		const ebytes = edges.length * ppe * 4
-		let nIndex = {}
-
-		// Allocating Byte arrays with correct nb of bytes
-		const nBuffer = new SharedArrayBuffer(nbytes)
-		const eBuffer = new SharedArrayBuffer(ebytes)
-		this.nodesByteArray = new Float32Array(nBuffer)
-		this.edgesByteArray = new Float32Array(eBuffer)
-
-		// Iterate through nodes
+		// A lookup map of node id (string) to index
+		let nodeIdToIndex: Record<string, number> = {}
 		this.packNodeBuffer()
 
-		for (let i = 0, j = 0, l = nodes.length; i < l; i++, j += ppn) {
+		for (let i = 0, l = nodes.length; i < l; i++) {
 			// Populating index
-			nIndex[nodes[i].id] = j
+			nodeIdToIndex[nodes[i].id] = i
 		}
 
 		// Iterate through edges
-		for (let i = 0, j = 0, l = edges.length; i < l; i++) {
-			this.edgesByteArray[j] = nIndex[edges[i].fromId]
-			this.edgesByteArray[j + 1] = nIndex[edges[i].toId]
-			this.edgesByteArray[j + 2] = edges[i].weight || 1
-			j += ppe
+		let bufferEdge: Edge
+		let sourceEdge: any
+		let source: number
+		let target: number
+		let weight: number
+		for (let i = 0, l = edges.length; i < l; i++) {
+			sourceEdge = edges[i]
+			bufferEdge = this._edges.getEdge(i)
+			source = nodeIdToIndex[sourceEdge.fromId]
+			target = nodeIdToIndex[sourceEdge.toId]
+			weight = sourceEdge.weight || 1
+
+			bufferEdge.source = source
+			bufferEdge.target = target
+			bufferEdge.weight = weight
 		}
 	}
 
 	private packNodeBuffer() {
-		let minX = Number.MAX_VALUE,
-			maxX = Number.MIN_VALUE,
-			minY = Number.MAX_VALUE,
-			maxY = Number.MIN_VALUE,
-			nodes = this.graph.nodes,
-			x,
-			y,
-			node
+		let minX = Number.MAX_VALUE
+		let maxX = Number.MIN_VALUE
+		let minY = Number.MAX_VALUE
+		let maxY = Number.MIN_VALUE
+		let x: number
+		let y: number
+		let node: Node
 
-		for (let i = 0, j = 0, l = nodes.length; i < l; i++) {
-			node = nodes[i]
-			x = node.x
-			y = node.y
-			// Populating byte array
-			this.nodesByteArray[j] = x
-			this.nodesByteArray[j + 1] = y
-			this.nodesByteArray[j + 2] = 0
-			this.nodesByteArray[j + 3] = 0
-			this.nodesByteArray[j + 4] = 0
-			this.nodesByteArray[j + 5] = 0
-			this.nodesByteArray[j + 6] = 1 + this.graph.degree[node.id]
-			this.nodesByteArray[j + 7] = 1
-			this.nodesByteArray[j + 8] = node.size || 0
-			this.nodesByteArray[j + 9] = node.isPinned
-			j += ppn
+		for (let i = 0; i < this.graph.nodes.length; ++i) {
+			const inputNode = this.graph.nodes[i]
+			node = this._nodes.getNode(i)
+			node.x = x = inputNode.x
+			node.y = y = inputNode.y
+			node.mass = this.graph.degree[inputNode.id]
+			node.convergence = 1
+			node.size = inputNode.size || 0
+			node.fixed = inputNode.isPinned
 
 			if (minX > x) minX = x
 			if (maxX < x) maxX = x
 			if (minY > y) minY = y
 			if (maxY < y) maxY = y
 		}
-
 		this._graphRect = new Rect(minX, minY, maxX, maxY)
 	}
 
 	private applyLayoutUpdate() {
 		const { nodes } = this.graph
-		let j = 0,
-			x,
-			y
+		let x: number
+		let y: number
+		let bufferNode: Node
 
 		let minX = Number.MAX_VALUE,
 			maxX = Number.MIN_VALUE,
@@ -193,23 +191,22 @@ export class Supervisor {
 			maxY = Number.MIN_VALUE
 
 		// Moving nodes
-		for (let i = 0, l = this.nodesByteArray.length; i < l; i += ppn) {
-			if (!nodes[j].changed) {
-				nodes[j].x = x = this.nodesByteArray[i]
-				nodes[j].y = y = this.nodesByteArray[i + 1]
+		for (let i = 0, l = this._nodes.nodeCount; i < l; i++) {
+			bufferNode = this._nodes.getNode(i)
+			if (!nodes[i].changed) {
+				nodes[i].x = x = bufferNode.x
+				nodes[i].y = y = bufferNode.y
 			} else {
-				this.nodesByteArray[i] = x = nodes[j].x
-				this.nodesByteArray[i + 1] = y = nodes[j].y
-				this.nodesByteArray[i + 9] = nodes[j].isPinned
-				nodes[j].changed = false
+				bufferNode.x = x = nodes[i].x
+				bufferNode.y = y = nodes[i].y
+				bufferNode.fixed = nodes[i].isPinned
+				nodes[i].changed = false
 			}
 
 			if (minX > x) minX = x
 			if (maxX < x) maxX = x
 			if (minY > y) minY = y
 			if (maxY < y) maxY = y
-
-			j++
 		}
 
 		this._graphRect = new Rect(minX, minY, maxX, maxY)
@@ -218,8 +215,8 @@ export class Supervisor {
 	private sendDataToWorker(action?: string) {
 		this.worker.postMessage({
 			action: action || 'loop',
-			nodes: this.nodesByteArray.buffer,
-			edges: this.edgesByteArray.buffer,
+			nodes: this._nodes.array.buffer,
+			edges: this._edges.array.buffer,
 		})
 		this._pending = true
 	}

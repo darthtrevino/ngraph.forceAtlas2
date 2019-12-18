@@ -1,4 +1,4 @@
-import { NodeStore, ppn, QuadTree } from '../../marshaling'
+import { NodeStore, QuadTree, Node } from '../../marshaling'
 import { FA2Configuration } from '../../../configuration'
 import { computeNodeRepulsion } from './computeNodeRepulsion'
 
@@ -7,8 +7,8 @@ export function computeRepulsionBarnesHut(
 	config: FA2Configuration,
 ) {
 	const qt = createQuadTree(nodes)
-	for (let n1 = 0; n1 < nodes.length; n1 += ppn) {
-		applyQuadTreeRepulsion(qt, nodes, n1, config)
+	for (let n1 = 0; n1 < nodes.nodeCount; n1++) {
+		applyQuadTreeRepulsion(qt, nodes.getNode(n1), config)
 	}
 }
 
@@ -21,8 +21,8 @@ export function createQuadTree(nodes: NodeStore): QuadTree {
 	const centerY = minY + height / 2
 	const root = new QuadTree(width, height, centerX, centerY)
 
-	for (let n = 0; n < nodes.length; n += ppn) {
-		root.insert(n, nodes.mass(n), nodes.x(n), nodes.y(n))
+	for (let n = 0; n < nodes.nodeCount; n++) {
+		root.insert(nodes.getNode(n))
 	}
 
 	return root
@@ -30,30 +30,29 @@ export function createQuadTree(nodes: NodeStore): QuadTree {
 
 function applyQuadTreeRepulsion(
 	root: QuadTree,
-	nodes: NodeStore,
-	n1: number,
+	node: Node,
 	config: FA2Configuration,
 ) {
 	root.visit(qt => {
-		if (qt.isLeaf) {
-			computeNodeRepulsion(config, nodes, n1, qt.node)
+		if (qt.isLeaf && qt.node != null) {
+			computeNodeRepulsion(node, qt.node, config)
 			return true
 		}
-		const xDist = nodes.x(n1) - qt.centerOfMassX
-		const yDist = nodes.y(n1) - qt.centerOfMassY
+		const xDist = node.x - qt.centerOfMassX
+		const yDist = node.y - qt.centerOfMassY
 		const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 		const applyQuadForce = qt.size / distance < config.barnesHutTheta
 
 		if (applyQuadForce) {
 			const coefficient = config.scalingRatio
-			const massCoeff = coefficient * nodes.mass(n1) * qt.mass
+			const massCoeff = coefficient * node.mass * qt.mass
 
 			//-- Linear Repulsion
 			if (distance > 0) {
 				// Updating nodes' dx and dy
 				const factor = massCoeff / distance ** 2
-				nodes.addDx(n1, xDist * factor)
-				nodes.addDy(n1, yDist * factor)
+				node.dx += xDist * factor
+				node.dy += yDist * factor
 			} else {
 				console.log('Zero Distance 3')
 			}

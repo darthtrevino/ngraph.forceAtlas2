@@ -1,3 +1,3 @@
-export function jiggle() {
-	return (Math.random() - 0.5) * 1e-6
+export function jiggle(factor = 1e-6) {
+	return (Math.random() - 0.5) * factor
 }

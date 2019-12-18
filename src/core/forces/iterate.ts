@@ -14,6 +14,10 @@ export function iterate(
 ): [
 	// system tension
 	number,
+	// system swing
+	number,
+	// system traction
+	number,
 ] {
 	nodes.resetDeltas()
 
@@ -23,6 +27,5 @@ export function iterate(
 	computeAttraction(nodes, edges, config)
 	computeCollisions(nodes, config)
 
-	const tension = applyForces(nodes, config)
-	return [tension]
+	return applyForces(nodes, config)
 }
