@@ -1,4 +1,4 @@
-import { Edge, BufferEdge, ppe, E } from './Edge'
+import { Edge, BufferEdge, ppe } from './Edge'
 
 export class EdgeStore {
 	private _ary: Float32Array
@@ -33,29 +33,5 @@ export class EdgeStore {
 
 	public getEdge(index: number): Edge {
 		return this._edges[index]
-	}
-
-	public source(index: number): number {
-		return this._ary[index + E.source]
-	}
-
-	public target(index: number) {
-		return this._ary[index + E.target]
-	}
-
-	public weight(index: number) {
-		return this._ary[index + E.weight]
-	}
-
-	public setSource(index: number, value: number) {
-		this._ary[index + E.source] = value
-	}
-
-	public setTarget(index: number, value: number) {
-		this._ary[index + E.target] = value
-	}
-
-	public setWeight(index: number, value: number) {
-		this._ary[index + E.weight] = value
 	}
 }

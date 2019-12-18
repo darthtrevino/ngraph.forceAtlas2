@@ -1,4 +1,4 @@
-import { NodeStore, Node } from '../../marshaling'
+import { Node } from '../../marshaling'
 import { FA2Configuration } from '../../../configuration'
 
 export function computeNodeRepulsion(
