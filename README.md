@@ -1,6 +1,6 @@
 # ForceAtlas2 layout algorithm for ngraph
 
-It's [sigma.js plugin][1] adapted for 
+It's [sigma.js plugin][1] adapted for
 performing [ngraph][2] layout
 
 <a href="https://update-crystal.codio.io/images/100-10000.PNG" title="layout example 10k nodes, 100 communities">
@@ -26,11 +26,16 @@ please see the example folder for usage details
 [LIVE DEMO](https://update-crystal.codio.io/example/index.html)
 
 ### how to build example
+
 ```
-npm i gulp -g && npm i && gulp watch_browserify
+yarn install
+yarn build
+yarn start
 ```
+
 ## TODO
-- handle graph changes 
+
+- handle graph changes
 
 [1]: https://github.com/jacomyal/sigma.js/tree/master/plugins/sigma.layout.forceAtlas2
 [2]: https://github.com/anvaka/ngraph.graph
