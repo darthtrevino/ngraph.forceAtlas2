@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIGURATION, FA2Configuration } from '../configuration'
 import { EdgeStore, NodeStore } from './marshaling'
 import { iterate } from './forces'
+import { ForceMetrics } from './types'
 
 export class FA2Algorithm {
 	private _config: FA2Configuration
@@ -38,8 +39,9 @@ export class FA2Algorithm {
 		return this._iterations
 	}
 
-	public pass() {
-		iterate(this._nodes, this._edges, this.configuration)
+	public pass(): ForceMetrics {
+		const metrics = iterate(this._nodes, this._edges, this.configuration)
 		this._iterations++
+		return metrics
 	}
 }
