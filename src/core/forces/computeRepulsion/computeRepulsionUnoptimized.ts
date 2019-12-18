@@ -9,7 +9,7 @@ export function computeRepulsionUnoptimized(
 	config: FA2Configuration,
 ) {
 	// O(n^2) iteration
-	for (let n1 = 0; n1 < nodes.length; n1 += ppn) {
+	for (let n1 = 0; n1 < nodes.bufferLength; n1 += ppn) {
 		for (let n2 = 0; n2 < n1; n2 += ppn) {
 			computeNodeRepulsion(config, nodes, n1, n2)
 		}

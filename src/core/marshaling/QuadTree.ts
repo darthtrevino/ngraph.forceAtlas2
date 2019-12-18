@@ -1,8 +1,7 @@
-import { NodeStore } from './NodeStore'
-import { FA2Configuration } from '../../configuration'
-
+import { Node } from './Node'
+import { jiggle } from '../helpers/jiggle'
 export class QuadTree {
-	public node: number | undefined
+	public node: Node | undefined
 
 	public nwChild: QuadTree | undefined
 	public neChild: QuadTree | undefined
@@ -19,6 +18,11 @@ export class QuadTree {
 	public width: number
 	public height: number
 
+	public x0: number
+	public x1: number
+	public y0: number
+	public y1: number
+
 	public constructor(
 		width: number,
 		height: number,
@@ -30,6 +34,10 @@ export class QuadTree {
 		this.centerX = this.centerOfMassX = centerX
 		this.centerY = this.centerOfMassY = centerY
 		this.mass = 0
+		this.x0 = this.centerX - width / 2
+		this.x1 = this.centerX + width / 2
+		this.y0 = this.centerY - height / 2
+		this.y1 = this.centerY + height / 2
 	}
 
 	public get size() {
@@ -40,34 +48,59 @@ export class QuadTree {
 		return !this.nwChild && !this.neChild && !this.swChild && !this.seChild
 	}
 
-	public insert(index: number, mass: number, x: number, y: number) {
-		// If node x is an external node, say containing a body named c, then there are two
-		// bodies b and c in the same region. Subdivide the region further by creating four children.
-		// Then, recursively insert both b and c into the appropriate quadrant(s). Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion. Finally, update the center-of-mass and total mass of x.
+	public get depth() {
 		if (this.isLeaf) {
-			if (this.node != null) {
-				this.subdivide()
-				this.node = undefined
-
-				// reinsert current node
-				this.insertIntoQuadrant(
-					this.node,
-					this.mass,
-					this.centerOfMassX,
-					this.centerOfMassY,
-				)
-				// insert new node
-				this.insertIntoQuadrant(index, mass, x, y)
-			} else {
-				this.node = index
-			}
+			return 0
 		} else {
-			this.insertIntoQuadrant(index, mass, x, y)
+			return (
+				Math.max(
+					this.nwChild.depth,
+					this.neChild.depth,
+					this.swChild.depth,
+					this.seChild.depth,
+				) + 1
+			)
 		}
-		this.addMass(x, y, mass)
 	}
 
-	private getQuadrant(x: number, y: number): QuadTree {
+	public insert(node: Node, depth = 0) {
+		if (!this.isLeaf) {
+			//
+			// Current quad is interior, push the node down
+			//
+			this.pushDownNode(node)
+		} else {
+			if (this.node) {
+				// Infinite recursion protection
+				if (this.node.x === node.x && this.node.y === node.y) {
+					const jx = jiggle(1e-1)
+					const jy = jiggle(1e-1)
+					node.x += jx
+					node.y += jy
+				}
+
+				//
+				// Current quad is a leaf with a current node
+				//
+				this.subdivide()
+				let curNode = this.node
+				this.node = undefined
+
+				// reinsert current node and insert the new node
+				this.pushDownNode(curNode, depth)
+				this.pushDownNode(node, depth)
+			} else {
+				//
+				// Current quad is a leaf without a node
+				//
+				this.node = node
+			}
+		}
+		this.addNodeMass(node)
+	}
+
+	private getQuadrant(node: Node): QuadTree {
+		const { x, y } = node
 		if (y > this.centerY) {
 			if (x > this.centerX) {
 				return this.neChild
@@ -83,103 +116,31 @@ export class QuadTree {
 		}
 	}
 
-	private addMass(x: number, y: number, mass: number) {
-		const newMass = this.mass + mass
-		this.centerOfMassX = (x * mass + this.centerOfMassX * this.mass) / newMass
-		this.centerOfMassY = (y * mass + this.centerOfMassY * this.mass) / newMass
+	private addNodeMass(node: Node) {
+		const newMass = this.mass + node.mass
+		this.centerOfMassX =
+			(node.x * node.mass + this.centerOfMassX * this.mass) / newMass
+		this.centerOfMassY =
+			(node.y * node.mass + this.centerOfMassY * this.mass) / newMass
 		this.mass = newMass
 	}
 
-	private insertIntoQuadrant(
-		index: number,
-		mass: number,
-		x: number,
-		y: number,
-	) {
-		const quadrant = this.getQuadrant(x, y)
-		quadrant.insert(index, mass, x, y)
+	private pushDownNode(node: Node, depth = 0) {
+		const quadrant = this.getQuadrant(node)
+		quadrant.insert(node, depth + 1)
 	}
 
 	private subdivide() {
+		const cx = this.centerX
+		const cy = this.centerY
 		const w = this.width / 2
 		const h = this.height / 2
 		const hh = h / 2
 		const hw = w / 2
-		const cx = this.centerX
-		const cy = this.centerY
 		this.neChild = new QuadTree(w, h, cx + hw, cy + hh)
 		this.nwChild = new QuadTree(w, h, cx - hw, cy + hh)
 		this.seChild = new QuadTree(w, h, cx + hw, cy - hh)
 		this.swChild = new QuadTree(w, h, cx - hw, cy - hh)
-	}
-
-	public applyRepulsion(
-		config: FA2Configuration,
-		nodes: NodeStore,
-		n1: number,
-	) {
-		let coefficient = config.scalingRatio
-		let xDist, yDist, factor, distance, massCoeff
-
-		if (this.isLeaf) {
-			const n2 = this.node
-			// Common to both methods
-			xDist = nodes.x(n1) - nodes.x(n2)
-			yDist = nodes.y(n1) - nodes.y(n2)
-			massCoeff = coefficient * nodes.mass(n1) * nodes.mass(n2)
-
-			if (config.adjustSize) {
-				//-- Anticollision Linear Repulsion
-				distance =
-					Math.sqrt(xDist ** 2 + yDist ** 2) - nodes.size(n1) - nodes.size(n2)
-
-				if (distance > 0) {
-					// Updating nodes' dx and dy
-					factor = massCoeff / distance ** 2
-					nodes.addDx(n1, xDist * factor)
-					nodes.addDy(n1, yDist * factor)
-					nodes.addDx(n2, xDist * factor)
-					nodes.addDy(n2, yDist * factor)
-				} else if (distance < 0) {
-					// Updating nodes' dx and dy
-					factor = 100 * massCoeff
-					nodes.addDx(n1, xDist * factor)
-					nodes.addDy(n1, yDist * factor)
-					nodes.subDx(n2, xDist * factor)
-					nodes.subDy(n2, yDist * factor)
-				}
-			} else {
-				//-- Linear Repulsion
-				distance = Math.sqrt(xDist ** 2 + yDist ** 2)
-				if (distance > 0) {
-					// Updating nodes' dx and dy
-					factor = massCoeff / distance ** 2
-					nodes.addDx(n1, xDist * factor)
-					nodes.addDy(n1, yDist * factor)
-					nodes.subDx(n2, xDist * factor)
-					nodes.subDy(n2, yDist * factor)
-				}
-			}
-		} else {
-			xDist = nodes.x(n1) - this.centerOfMassX
-			yDist = nodes.y(n1) - this.centerOfMassY
-			distance = Math.sqrt(xDist ** 2 + yDist ** 2)
-
-			if (this.size / distance < config.barnesHutTheta) {
-				//-- Linear Repulsion
-				if (distance > 0) {
-					// Updating nodes' dx and dy
-					factor = massCoeff / distance ** 2
-					nodes.addDx(n1, xDist * factor)
-					nodes.addDy(n1, yDist * factor)
-				}
-			} else {
-				this.nwChild.applyRepulsion(config, nodes, n1)
-				this.neChild.applyRepulsion(config, nodes, n1)
-				this.swChild.applyRepulsion(config, nodes, n1)
-				this.seChild.applyRepulsion(config, nodes, n1)
-			}
-		}
 	}
 
 	public visit(callback: (qt: QuadTree) => boolean) {
@@ -188,7 +149,9 @@ export class QuadTree {
 			const qt = queue.pop()
 			const halt = callback(qt)
 			if (!halt) {
-				queue.push(qt.nwChild, qt.neChild, qt.swChild, qt.seChild)
+				if (!qt.isLeaf) {
+					queue.push(qt.nwChild, qt.neChild, qt.swChild, qt.seChild)
+				}
 			}
 		}
 	}

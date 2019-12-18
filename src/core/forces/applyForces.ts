@@ -6,7 +6,7 @@ export function applyForces(nodes: NodeStore, config: FA2Configuration) {
 
 	// MATH: sqrt and square distances
 	if (config.adjustSizes) {
-		for (let n = 0; n < nodes.length; n += ppn) {
+		for (let n = 0; n < nodes.bufferLength; n += ppn) {
 			if (!nodes.fixed(n)) {
 				force = Math.sqrt(nodes.dx(n) ** 2 + nodes.dy(n) ** 2)
 
@@ -36,7 +36,7 @@ export function applyForces(nodes: NodeStore, config: FA2Configuration) {
 			}
 		}
 	} else {
-		for (let n = 0; n < nodes.length; n += ppn) {
+		for (let n = 0; n < nodes.bufferLength; n += ppn) {
 			if (!nodes.fixed(n)) {
 				swinging =
 					nodes.mass(n) *

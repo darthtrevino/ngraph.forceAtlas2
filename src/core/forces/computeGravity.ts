@@ -2,7 +2,7 @@ import { NodeStore, ppn } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 export function computeGravity(nodes: NodeStore, config: FA2Configuration) {
-	for (let n = 0; n < nodes.length; n += ppn) {
+	for (let n = 0; n < nodes.bufferLength; n += ppn) {
 		// Common to both methods
 		const xDist = nodes.x(n)
 		const yDist = nodes.y(n)

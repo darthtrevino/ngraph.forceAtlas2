@@ -14,9 +14,9 @@ export function computeAttraction(
 
 	// TODO: simplify distance
 	// TODO: coefficient is always used as -c --> optimize?
-	for (let e = 0; e < edges.length; e += ppe) {
-		const n1 = edges.source(e)
-		const n2 = edges.target(e)
+	for (let e = 0; e < edges.bufferLength; e += ppe) {
+		const n1 = edges.source(e) * ppn
+		const n2 = edges.target(e) * ppn
 		const w = edges.weight(e)
 
 		// Edge weight influence
@@ -113,11 +113,10 @@ function getOutboundAttCompensation(
 	// If outbound attraction distribution, compensate
 	if (config.outboundAttractionDistribution) {
 		outboundAttCompensation = 0
-		for (let n = 0; n < nodes.length; n += ppn) {
+		for (let n = 0; n < nodes.bufferLength; n += ppn) {
 			outboundAttCompensation += nodes.mass(n)
 		}
-
-		outboundAttCompensation /= nodes.length
+		outboundAttCompensation /= nodes.nodeCount
 	}
 	return outboundAttCompensation
 }

@@ -1,14 +1,13 @@
 import { NodeStore, ppn, QuadTree } from '../../marshaling'
 import { FA2Configuration } from '../../../configuration'
 import { computeNodeRepulsion } from './computeNodeRepulsion'
-import { jiggle, jiggleIfZero } from '../helpers/jiggle'
 
 export function computeRepulsionBarnesHut(
 	nodes: NodeStore,
 	qt: QuadTree,
 	config: FA2Configuration,
 ) {
-	for (let n1 = 0; n1 < nodes.length; n1 += ppn) {
+	for (let n1 = 0; n1 < nodes.bufferLength; n1 += ppn) {
 		applyQuadTreeRepulsion(qt, nodes, n1, config)
 	}
 }
@@ -21,12 +20,14 @@ function applyQuadTreeRepulsion(
 ) {
 	root.visit(qt => {
 		if (qt.isLeaf) {
-			computeNodeRepulsion(config, nodes, n1, qt.node)
+			if (qt.node) {
+				computeNodeRepulsion(config, nodes, n1, qt.node.index)
+			}
 			return true
 		}
 		const xDist = nodes.x(n1) - qt.centerOfMassX
 		const yDist = nodes.y(n1) - qt.centerOfMassY
-		const distance = jiggleIfZero(Math.sqrt(xDist ** 2 + yDist ** 2))
+		const distance = Math.sqrt(xDist ** 2 + yDist ** 2)
 		const applyQuadForce = qt.size / distance < config.barnesHutTheta
 
 		if (applyQuadForce) {
