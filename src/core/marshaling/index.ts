@@ -1,3 +1,5 @@
+export * from './Node'
+export * from './Edge'
 export * from './EdgeStore'
 export * from './NodeStore'
 export * from './QuadTree'

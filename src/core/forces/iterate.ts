@@ -5,12 +5,13 @@ import { computeAttraction } from './computeAttraction'
 import { applyForces } from './applyForces'
 import { computeGravity } from './computeGravity'
 import { computeRepulsion } from './computeRepulsion'
+import { ForceMetrics } from '../types'
 
 export function iterate(
 	nodes: NodeStore,
 	edges: EdgeStore,
 	config: FA2Configuration,
-) {
+): ForceMetrics {
 	nodes.resetDeltas()
 
 	// Compute Forces
@@ -18,5 +19,5 @@ export function iterate(
 	computeGravity(nodes, config)
 	computeAttraction(nodes, edges, config)
 
-	applyForces(nodes, config)
+	return applyForces(nodes, config)
 }

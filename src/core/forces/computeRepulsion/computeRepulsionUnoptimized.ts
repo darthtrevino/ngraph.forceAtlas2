@@ -1,4 +1,4 @@
-import { ppn, NodeStore } from '../../marshaling'
+import { NodeStore } from '../../marshaling'
 import { FA2Configuration } from '../../../configuration'
 import { computeNodeRepulsion } from './computeNodeRepulsion'
 /**
@@ -9,9 +9,9 @@ export function computeRepulsionUnoptimized(
 	config: FA2Configuration,
 ) {
 	// O(n^2) iteration
-	for (let n1 = 0; n1 < nodes.length; n1 += ppn) {
-		for (let n2 = 0; n2 < n1; n2 += ppn) {
-			computeNodeRepulsion(config, nodes, n1, n2)
+	for (let n1 = 0; n1 < nodes.nodeCount; ++n1) {
+		for (let n2 = 0; n2 < n1; ++n2) {
+			computeNodeRepulsion(nodes.getNode(n1), nodes.getNode(n2), config)
 		}
 	}
 }

@@ -1,38 +1,36 @@
-import { NodeStore } from '../../marshaling'
+import { Node } from '../../marshaling'
 import { FA2Configuration } from '../../../configuration'
 
 export function computeNodeRepulsion(
+	n1: Node,
+	n2: Node,
 	config: FA2Configuration,
-	nodes: NodeStore,
-	n1: number,
-	n2: number,
 ) {
 	const coefficient = config.scalingRatio
 
 	// Common to both methods
-	const xDist = nodes.x(n1) - nodes.x(n2)
-	const yDist = nodes.y(n1) - nodes.y(n2)
-	const massCoeff = coefficient * nodes.mass(n1) * nodes.mass(n2)
+	const xDist = n1.x - n2.x
+	const yDist = n1.y - n2.y
+	const massCoeff = coefficient * n1.mass * n2.mass
 
 	if (config.adjustSize) {
 		//-- Anticollision Linear Repulsion
-		let distance =
-			Math.sqrt(xDist ** 2 + yDist ** 2) - nodes.size(n1) - nodes.size(n2)
+		let distance = Math.sqrt(xDist ** 2 + yDist ** 2) - n1.size - n2.size
 
 		if (distance > 0) {
 			// Updating nodes' dx and dy
 			let factor = massCoeff / distance ** 2
-			nodes.addDx(n1, xDist * factor)
-			nodes.addDy(n1, yDist * factor)
-			nodes.addDx(n2, xDist * factor)
-			nodes.addDy(n2, yDist * factor)
+			n1.dx += xDist * factor
+			n1.dy += yDist * factor
+			n2.dx -= xDist * factor
+			n2.dy -= yDist * factor
 		} else if (distance < 0) {
 			// Updating nodes' dx and dy
 			let factor = 100 * massCoeff
-			nodes.addDx(n1, xDist * factor)
-			nodes.addDy(n1, yDist * factor)
-			nodes.subDx(n2, xDist * factor)
-			nodes.subDy(n2, yDist * factor)
+			n1.dx += xDist * factor
+			n1.dy += yDist * factor
+			n2.dx -= xDist * factor
+			n2.dy -= yDist * factor
 		} else {
 			console.log('Zero Distance 2')
 		}
@@ -42,10 +40,10 @@ export function computeNodeRepulsion(
 		if (distance > 0) {
 			// Updating nodes' dx and dy
 			const factor = massCoeff / distance ** 2
-			nodes.addDx(n1, xDist * factor)
-			nodes.addDy(n1, yDist * factor)
-			nodes.subDx(n2, xDist * factor)
-			nodes.subDy(n2, yDist * factor)
+			n1.dx += xDist * factor
+			n1.dy += yDist * factor
+			n2.dx -= xDist * factor
+			n2.dy -= yDist * factor
 		} else {
 			// hit often
 			// console.log("Zero Distance 1")

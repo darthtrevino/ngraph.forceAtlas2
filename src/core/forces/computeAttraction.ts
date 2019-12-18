@@ -1,4 +1,4 @@
-import { NodeStore, EdgeStore, ppe, ppn } from '../marshaling'
+import { NodeStore, EdgeStore, ppn, Edge, Node } from '../marshaling'
 import { FA2Configuration } from '../../configuration'
 
 export function computeAttraction(
@@ -14,24 +14,33 @@ export function computeAttraction(
 
 	// TODO: simplify distance
 	// TODO: coefficient is always used as -c --> optimize?
-	for (let e = 0; e < edges.length; e += ppe) {
-		const n1 = edges.source(e)
-		const n2 = edges.target(e)
-		const w = edges.weight(e)
+	let edge: Edge
+	let source: Node
+	let target: Node
+	// edge weight
+	let w: number
+	// edge weight influence
+	let ewc: number
+	let xDist: number
+	let yDist: number
+	let distance: number
+	let factor: number
 
-		// Edge weight influence
-		const ewc = Math.pow(w, config.edgeWeightInfluence)
+	for (let e = 0; e < edges.edgeCount; e++) {
+		// Get the edge and nodes on the edge
+		edge = edges.getEdge(e)
+		source = nodes.getNode(edge.source)
+		target = nodes.getNode(edge.target)
 
-		// Common measures
-		const xDist = nodes.x(n1) - nodes.x(n2)
-		const yDist = nodes.y(n1) - nodes.y(n2)
-		let distance, factor
+		// Compute necessary values
+		w = edge.weight
+		ewc = Math.pow(w, config.edgeWeightInfluence)
+		xDist = source.x - target.x
+		yDist = source.y - target.y
 
 		// Applying attraction to nodes
 		if (config.adjustSizes) {
-			distance = Math.sqrt(
-				xDist ** 2 + yDist ** 2 - nodes.size(n1) - nodes.size(n2),
-			)
+			distance = Math.sqrt(xDist ** 2 + yDist ** 2 - source.size - target.size)
 
 			if (config.linLogMode) {
 				if (config.outboundAttractionDistribution) {
@@ -40,7 +49,7 @@ export function computeAttraction(
 						factor =
 							(-coefficient * ewc * Math.log(1 + distance)) /
 							distance /
-							nodes.mass(n1)
+							source.mass
 					}
 				} else {
 					//-- LinLog Anti-collision Attraction
@@ -52,7 +61,7 @@ export function computeAttraction(
 				if (config.outboundAttractionDistribution) {
 					//-- Linear Degree Distributed Anti-collision Attraction
 					if (distance > 0) {
-						factor = (-coefficient * ewc) / nodes.mass(n1)
+						factor = (-coefficient * ewc) / source.mass
 					}
 				} else {
 					//-- Linear Anti-collision Attraction
@@ -71,7 +80,7 @@ export function computeAttraction(
 						factor =
 							(-coefficient * ewc * Math.log(1 + distance)) /
 							distance /
-							nodes.mass(n1)
+							source.mass
 					}
 				} else {
 					//-- LinLog Attraction
@@ -83,7 +92,7 @@ export function computeAttraction(
 					//-- Linear Attraction Mass Distributed
 					// NOTE: Distance is set to 1 to override next condition
 					distance = 1
-					factor = (-coefficient * ewc) / nodes.mass(n1)
+					factor = (-coefficient * ewc) / source.mass
 				} else {
 					//-- Linear Attraction
 					// NOTE: Distance is set to 1 to override next condition
@@ -97,10 +106,10 @@ export function computeAttraction(
 		// TODO: if condition or factor = 1?
 		if (distance > 0) {
 			// Updating nodes' dx and dy
-			nodes.addDx(n1, xDist * factor)
-			nodes.addDy(n1, yDist * factor)
-			nodes.subDx(n2, xDist * factor)
-			nodes.subDy(n2, yDist * factor)
+			source.dx += xDist * factor
+			source.dy += yDist * factor
+			target.dx -= xDist * factor
+			target.dy -= yDist * factor
 		}
 	}
 }
@@ -113,11 +122,10 @@ function getOutboundAttCompensation(
 	// If outbound attraction distribution, compensate
 	if (config.outboundAttractionDistribution) {
 		outboundAttCompensation = 0
-		for (let n = 0; n < nodes.length; n += ppn) {
-			outboundAttCompensation += nodes.mass(n)
+		for (let n = 0; n < nodes.nodeCount; n++) {
+			outboundAttCompensation += nodes.getNode(n).mass
 		}
-
-		outboundAttCompensation /= nodes.length
+		outboundAttCompensation /= nodes.nodeCount
 	}
 	return outboundAttCompensation
 }
