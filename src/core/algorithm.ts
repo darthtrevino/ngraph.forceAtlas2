@@ -39,7 +39,9 @@ export class FA2Algorithm {
 	}
 
 	public pass() {
-		iterate(this._nodes, this._edges, this.configuration)
+		const [tension] = iterate(this._nodes, this._edges, this.configuration)
+		this.configuration.slowDown += 0.01
+		console.log('tension', tension)
 		this._iterations++
 	}
 }

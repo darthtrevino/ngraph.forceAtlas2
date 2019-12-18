@@ -11,7 +11,10 @@ export function iterate(
 	nodes: NodeStore,
 	edges: EdgeStore,
 	config: FA2Configuration,
-) {
+): [
+	// system tension
+	number,
+] {
 	nodes.resetDeltas()
 
 	// Compute Forces
@@ -20,5 +23,6 @@ export function iterate(
 	computeAttraction(nodes, edges, config)
 	computeCollisions(nodes, config)
 
-	applyForces(nodes, config)
+	const tension = applyForces(nodes, config)
+	return [tension]
 }
