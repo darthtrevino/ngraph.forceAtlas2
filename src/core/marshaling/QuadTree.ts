@@ -1,5 +1,5 @@
 import { Node } from './Node'
-import { jiggle } from '../forces/helpers/jiggle'
+import { jiggle } from '../helpers/jiggle'
 export class QuadTree {
 	public node: Node | undefined
 

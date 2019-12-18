@@ -45,16 +45,6 @@ export function applyForces(
 				node.convergence = getNodeConvergence(node, swinging, nodespeed)
 			}
 
-			if (Number.isNaN(nodespeed)) {
-				console.log(
-					'WTF',
-					nodespeed,
-					force,
-					swinging,
-					traction,
-					node.convergence,
-				)
-			}
 			moveNode(node, nodespeed / config.slowDown)
 		}
 	}

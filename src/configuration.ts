@@ -13,8 +13,6 @@ export interface FA2Configuration {
 	startingIterations: number
 	iterationsPerRender: number
 	maxForce: number
-	collisionDetection: boolean
-	collisionStrength: number
 }
 
 export const DEFAULT_CONFIGURATION: FA2Configuration = {
@@ -28,10 +26,8 @@ export const DEFAULT_CONFIGURATION: FA2Configuration = {
 	gravity: 1,
 	slowDown: 1,
 	barnesHutOptimize: true,
-	collisionDetection: false,
 	barnesHutTheta: 1.2,
 	startingIterations: 1,
 	iterationsPerRender: 1,
 	maxForce: 10,
-	collisionStrength: 0.7,
 }
