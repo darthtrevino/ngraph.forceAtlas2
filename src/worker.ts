@@ -6,20 +6,13 @@ let algorithm: FA2Algorithm
 /**
  * Message reception & sending
  */
-
-// Sending data back to the supervisor
-function sendNodePositions() {
-	const nodes = algorithm.nodes.buffer
-	self.postMessage({ nodes })
-}
-
 // Algorithm run
 function run(iterations: number) {
 	for (let i = 0; i < iterations; i++) {
 		algorithm.pass()
-		sendNodePositions()
+		self.postMessage({ type: 'progress' })
 	}
-	sendNodePositions()
+	self.postMessage({ type: 'complete' })
 }
 
 // On supervisor message
